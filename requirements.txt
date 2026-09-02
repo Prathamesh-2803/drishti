@@ -7,3 +7,8 @@ rasterio==1.5.1
 matplotlib==3.11.1
 requests==2.34.2
 python-dotenv==1.2.3
+
+# Pretrained SR baseline (build step 3) and evaluation.
+sen2sr==0.8.5          # SEN2SR-Lite architecture + predict helpers
+mlstac==0.4.9          # loads the SEN2SR-Lite weights from HuggingFace
+opensr-test==1.3.3     # hallucination / omission / improvement metrics (planned)

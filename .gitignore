@@ -11,3 +11,6 @@ outputs/
 *.zip
 .DS_Store
 .ipynb_checkpoints/
+
+# generated viewer previews (rebuild with scripts/make_preview.py)
+viewer/assets/

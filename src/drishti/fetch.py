@@ -5,17 +5,19 @@ sh.dataspace.copernicus.eu. Given a bounding box, a date range and a maximum
 cloud cover, this returns the newest matching Sentinel-2 L2A scene as a single
 multi-band Cloud-Optimised GeoTIFF in surface reflectance.
 
-Output bands, in order, all on the native 10 m grid (UTM, scene's zone):
-    1  B02  490 nm   (10 m native)
-    2  B03  560 nm   (10 m native)
-    3  B04  665 nm   (10 m native)
-    4  B08  842 nm   (10 m native)
-    5  B05  705 nm   (20 m native, resampled to 10 m)
-    6  B06  740 nm   (20 m native, resampled to 10 m)
-    7  B07  783 nm   (20 m native, resampled to 10 m)
-    8  B8A  865 nm   (20 m native, resampled to 10 m)
-    9  B11 1610 nm   (20 m native, resampled to 10 m)
-    10 B12 2190 nm   (20 m native, resampled to 10 m)
+Output bands, in ascending-wavelength order, all on the native 10 m grid (UTM,
+scene's zone). This order matches the SEN2SR / opensr pretrained-model
+convention so a fetched scene feeds inference directly:
+    1  B02   490 nm   (10 m native)
+    2  B03   560 nm   (10 m native)
+    3  B04   665 nm   (10 m native)
+    4  B05   705 nm   (20 m native, resampled to 10 m)
+    5  B06   740 nm   (20 m native, resampled to 10 m)
+    6  B07   783 nm   (20 m native, resampled to 10 m)
+    7  B08   842 nm   (10 m native)
+    8  B8A   865 nm   (20 m native, resampled to 10 m)
+    9  B11  1610 nm   (20 m native, resampled to 10 m)
+    10 B12  2190 nm   (20 m native, resampled to 10 m)
 
 Values are surface reflectance as float32 in roughly [0, 1] (L2A boundary
 reflectance; can slightly exceed 1 over bright targets). Never 8-bit stretched.
@@ -44,9 +46,11 @@ from rasterio.io import MemoryFile
 
 # --- Band configuration ------------------------------------------------------
 
+# Ascending-wavelength order (SEN2SR / opensr convention). The 20 m bands
+# (B05 B06 B07 B8A B11 B12) are delivered resampled onto the 10 m grid.
+BANDS = ["B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B11", "B12"]
 BANDS_10M = ["B02", "B03", "B04", "B08"]
 BANDS_20M = ["B05", "B06", "B07", "B8A", "B11", "B12"]
-BANDS = BANDS_10M + BANDS_20M
 
 NATIVE_RES_M = 10.0
 MAX_PROCESS_DIM = 2500  # Sentinel Hub Process API hard limit per request (px)
