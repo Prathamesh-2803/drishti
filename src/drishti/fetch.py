@@ -122,12 +122,21 @@ def _utm_epsg_for_bbox(bbox_ll: list[float]) -> int:
 
 
 def _reproject_bbox(bbox_ll: list[float], dst_epsg: int) -> list[float]:
+    """Reproject a lon/lat bbox to `dst_epsg` and snap it outward to the
+    NATIVE_RES_M grid so the output pixel size is exactly NATIVE_RES_M and the
+    grid aligns with the standard Sentinel-2 UTM grid (origin at 0)."""
     from rasterio.warp import transform_bounds
 
     minx, miny, maxx, maxy = transform_bounds(
         "EPSG:4326", f"EPSG:{dst_epsg}", *bbox_ll
     )
-    return [minx, miny, maxx, maxy]
+    r = NATIVE_RES_M
+    return [
+        math.floor(minx / r) * r,
+        math.floor(miny / r) * r,
+        math.ceil(maxx / r) * r,
+        math.ceil(maxy / r) * r,
+    ]
 
 
 def _grid_size(bbox_utm: list[float], res_m: float) -> tuple[int, int]:
