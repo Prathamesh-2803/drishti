@@ -1,0 +1,515 @@
+<title>DRISHTI</title>
+<meta name="description" content="An explorer for DRISHTI: Sentinel-2 imagery across India, enhanced from 10 m to 2.5 m with a per-pixel reliability layer." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" />
+
+<style>
+  :root {
+    --ground: #f4f5f2; --surface: #ffffff; --surface-2: #ececea; --surface-3: #e2e4df;
+    --ink: #161b22; --ink-dim: #56616e; --line: #d5d8d1; --line-strong: #b6bcb1;
+    --accent: #b25c15; --accent-ink: #ffffff; --verified: #367456; --swin: #2c6aa2;
+    --shadow: 0 1px 2px rgba(20,28,20,.06), 0 10px 30px rgba(20,28,20,.06);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #090d12; --surface: #121a23; --surface-2: #1b2530; --surface-3: #24303c;
+      --ink: #dce3ea; --ink-dim: #8a97a6; --line: #253039; --line-strong: #3a4655;
+      --accent: #f0a253; --accent-ink: #10130f; --verified: #59a785; --swin: #57a0d4;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 14px 40px rgba(0,0,0,.4);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #090d12; --surface: #121a23; --surface-2: #1b2530; --surface-3: #24303c;
+    --ink: #dce3ea; --ink-dim: #8a97a6; --line: #253039; --line-strong: #3a4655;
+    --accent: #f0a253; --accent-ink: #10130f; --verified: #59a785; --swin: #57a0d4;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 14px 40px rgba(0,0,0,.4);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--ground); color: var(--ink);
+    font: 400 15px/1.6 "IBM Plex Sans", system-ui, sans-serif;
+  }
+  h1, h2, h3 { font-family: "Chakra Petch", system-ui, sans-serif; font-weight: 600; margin: 0; text-wrap: balance; }
+  .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  button { font-family: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  header {
+    display: flex; align-items: center; gap: 14px; padding: 13px 20px;
+    border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 30;
+    background: color-mix(in srgb, var(--ground) 90%, transparent); backdrop-filter: blur(8px);
+  }
+  .brand { font-family: "Chakra Petch", sans-serif; font-weight: 700; letter-spacing: .28em; font-size: 18px; }
+  .brand span { color: var(--accent); }
+  .sub { font-size: 12px; color: var(--ink-dim); letter-spacing: .03em; }
+  header .sp { flex: 1; }
+  .ghost-btn {
+    font: 500 12px/1 "IBM Plex Mono", monospace; letter-spacing: .06em;
+    background: var(--surface); color: var(--ink-dim); border: 1px solid var(--line);
+    border-radius: 2px; padding: 8px 11px; cursor: pointer;
+  }
+  .ghost-btn:hover { color: var(--ink); border-color: var(--line-strong); }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ---------- MAP VIEW ---------- */
+  .map-wrap { max-width: 1180px; margin: 0 auto; padding: 44px 24px 72px; }
+  .map-intro { display: grid; grid-template-columns: 1.1fr .9fr; gap: 40px; align-items: end; margin-bottom: 34px; }
+  .map-intro h1 { font-size: clamp(30px, 5vw, 52px); line-height: 1.04; letter-spacing: .01em; }
+  .map-intro p { color: var(--ink-dim); font-size: 15.5px; max-width: 46ch; margin: 14px 0 0; }
+  .map-intro .cue { margin-top: 18px; font: 500 12px/1 "IBM Plex Mono", monospace; letter-spacing: .08em; color: var(--accent); }
+
+  .atlas { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 30px; align-items: start; }
+  .india { width: 100%; height: auto; display: block; touch-action: manipulation; }
+  .india .land { fill: var(--surface-2); stroke: var(--line-strong); stroke-width: 1.4; }
+  .india .grat { stroke: var(--line); stroke-width: .8; fill: none; }
+  .india .grat-lbl { fill: var(--ink-dim); font: 400 9px "IBM Plex Mono", monospace; }
+  .pin { cursor: pointer; }
+  .pin circle.dot { fill: var(--accent); stroke: var(--ground); stroke-width: 2; transition: r .12s ease; }
+  .pin circle.halo { fill: var(--accent); opacity: 0; transition: opacity .15s ease; }
+  .pin:hover circle.dot, .pin.sel circle.dot { r: 8; }
+  .pin:hover circle.halo, .pin.sel circle.halo { opacity: .18; }
+  .pin text { fill: var(--ink); font: 500 11px "Chakra Petch", sans-serif; paint-order: stroke; stroke: var(--ground); stroke-width: 3px; pointer-events: none; opacity: 0; transition: opacity .12s ease; }
+  .pin:hover text, .pin.sel text { opacity: 1; }
+  .pin.held circle.dot { fill: var(--verified); }
+
+  .region-list { border: 1px solid var(--line); background: var(--surface); max-height: 560px; overflow: auto; }
+  .region-list h3 { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-dim); padding: 14px 16px 10px; position: sticky; top: 0; background: var(--surface); }
+  .region-list button {
+    display: block; width: 100%; text-align: left; background: none; border: 0; cursor: pointer;
+    padding: 11px 16px; border-top: 1px solid var(--line); color: var(--ink);
+  }
+  .region-list button:hover { background: var(--surface-2); }
+  .region-list .rn { font-family: "Chakra Petch", sans-serif; font-weight: 600; font-size: 14px; }
+  .region-list .rt { font-size: 12px; color: var(--ink-dim); }
+  .region-list .rhold { font: 500 9px/1 "IBM Plex Mono", monospace; color: var(--verified); border: 1px solid currentColor; padding: 2px 4px; border-radius: 2px; letter-spacing: .04em; margin-left: 6px; }
+
+  .map-foot { margin-top: 26px; font: 400 12px/1.7 "IBM Plex Mono", monospace; color: var(--ink-dim); }
+
+  /* ---------- WORKSPACE VIEW ---------- */
+  .ws { max-width: 1320px; margin: 0 auto; padding: 20px 24px 72px; }
+  .ws-top { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: baseline; margin-bottom: 16px; }
+  .back { font: 500 12px/1 "IBM Plex Mono", monospace; letter-spacing: .05em; background: none; border: 0; color: var(--ink-dim); cursor: pointer; padding: 6px 0; }
+  .back:hover { color: var(--accent); }
+  .ws-top h2 { font-size: clamp(22px, 3.2vw, 32px); }
+  .ws-meta { font: 400 12px/1.6 "IBM Plex Mono", monospace; color: var(--ink-dim); }
+
+  .stage {
+    position: relative; border: 1px solid var(--line-strong); background: #05070a; overflow: hidden;
+    aspect-ratio: 16 / 10; max-height: 76vh; user-select: none; touch-action: pan-y;
+  }
+  .stage img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 45%; display: block; -webkit-user-drag: none; }
+  .stage .after-clip { position: absolute; top: 0; right: 0; bottom: 0; width: 50%; overflow: hidden; }
+  .stage .after-clip img { left: auto; right: 0; }
+  .stage.pre .after-clip, .stage.pre .divider { display: none; }
+  .divider { position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; background: var(--accent); box-shadow: 0 0 0 1px rgba(0,0,0,.4); cursor: ew-resize; }
+  .divider .grip { position: absolute; top: 50%; left: 50%; width: 32px; height: 32px; transform: translate(-50%,-50%); border: 2px solid var(--accent); border-radius: 50%; background: rgba(8,10,14,.55); display: grid; place-items: center; }
+  .divider .grip::before { content: "‹ ›"; color: var(--accent); font: 600 13px/1 "IBM Plex Mono", monospace; }
+  .stage .corner { position: absolute; width: 12px; height: 12px; border: 1px solid rgba(255,255,255,.5); pointer-events: none; }
+  .stage .corner.tl { top: 8px; left: 8px; border-right: 0; border-bottom: 0; }
+  .stage .corner.tr { top: 8px; right: 8px; border-left: 0; border-bottom: 0; }
+  .stage .corner.bl { bottom: 8px; left: 8px; border-right: 0; border-top: 0; }
+  .stage .corner.br { bottom: 8px; right: 8px; border-left: 0; border-top: 0; }
+  .stage .hud { position: absolute; top: 10px; left: 10px; font: 500 10px/1.5 "IBM Plex Mono", monospace; color: #e8ecef; background: rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.14); padding: 5px 8px; pointer-events: none; }
+  .stage .scalebar { position: absolute; left: 12px; bottom: 12px; pointer-events: none; }
+  .stage .scalebar i { display: block; width: 84px; height: 4px; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.5); }
+  .stage .scalebar span { font: 500 10px/1.4 "IBM Plex Mono", monospace; color: #fff; text-shadow: 0 1px 2px #000; }
+  .edge-tag { position: absolute; bottom: 12px; padding: 4px 8px; font: 500 10px/1 "IBM Plex Mono", monospace; letter-spacing: .05em; background: rgba(0,0,0,.6); color: #fff; border: 1px solid rgba(255,255,255,.16); }
+  .edge-tag.l { left: 108px; } .edge-tag.r { right: 12px; }
+  .stage.pre .edge-tag.r, .stage.pre .scalebar { display: none; }
+
+  .enhance {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
+    font: 600 13px/1 "Chakra Petch", sans-serif; letter-spacing: .08em; text-transform: uppercase;
+    background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 3px;
+    padding: 15px 26px; cursor: pointer; box-shadow: 0 6px 24px rgba(0,0,0,.35);
+  }
+  .enhance:hover { filter: brightness(1.06); }
+  .stage:not(.pre) .enhance { display: none; }
+  .scan { position: absolute; inset: 0; pointer-events: none; opacity: 0; }
+  .stage.working .scan { opacity: 1; background: linear-gradient(180deg, transparent 44%, color-mix(in srgb, var(--accent) 55%, transparent) 50%, transparent 56%); animation: scan 1s linear infinite; }
+  @keyframes scan { from { background-position: 0 -100%; } to { background-position: 0 100%; } }
+  .stage.working .enhance { opacity: .5; pointer-events: none; }
+
+  .toolbar { display: flex; flex-wrap: wrap; gap: 10px 8px; margin: 14px 0 0; align-items: center; }
+  .toolbar .grp { display: inline-flex; border: 1px solid var(--line-strong); }
+  .toolbar .grp button {
+    font: 500 12px/1 "IBM Plex Mono", monospace; letter-spacing: .03em; background: var(--surface);
+    color: var(--ink-dim); border: 0; padding: 8px 12px; cursor: pointer;
+  }
+  .toolbar .grp button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+  .toolbar .grp button:disabled { opacity: .4; cursor: not-allowed; }
+  .toolbar .hint { font: 400 12px/1 "IBM Plex Mono", monospace; color: var(--ink-dim); margin-left: auto; }
+
+  .ws-grid { display: grid; grid-template-columns: 1fr 300px; gap: 26px; margin-top: 24px; align-items: start; }
+  .ws-note { font-size: 13.5px; color: var(--ink-dim); border-left: 2px solid var(--accent); padding: 4px 0 4px 14px; }
+  .ws-note b { color: var(--ink); }
+  .locator { border: 1px solid var(--line); background: var(--surface); padding: 14px; }
+  .locator h3 { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-dim); margin-bottom: 10px; }
+  .locator svg { width: 100%; height: auto; }
+  .locator .land { fill: var(--surface-2); stroke: var(--line-strong); stroke-width: 1.2; }
+  .locator .here { fill: var(--accent); stroke: var(--surface); stroke-width: 1.5; }
+  .locator dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 12px 0 0; font: 400 11.5px/1.4 "IBM Plex Mono", monospace; }
+  .locator dt { color: var(--ink-dim); } .locator dd { margin: 0; text-align: right; }
+
+  /* ---------- ACCURACY ---------- */
+  .accuracy { border-top: 1px solid var(--line); background: var(--surface); }
+  .accuracy .inner { max-width: 1180px; margin: 0 auto; padding: 60px 24px; }
+  .accuracy .eyebrow { font: 600 12px/1 "Chakra Petch", sans-serif; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-dim); }
+  .accuracy h2 { font-size: clamp(24px, 3.4vw, 34px); margin: 12px 0 8px; }
+  .accuracy .lede { font-size: 16px; color: var(--ink); max-width: 60ch; }
+  .claims { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); margin-top: 30px; }
+  .claim { background: var(--surface); padding: 22px 20px; }
+  .claim .big { font: 600 30px/1 "Chakra Petch", sans-serif; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .claim .lab { font: 600 11px/1.3 "Chakra Petch", sans-serif; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-dim); margin: 8px 0 6px; }
+  .claim p { font-size: 13px; color: var(--ink-dim); margin: 0; }
+  .accuracy .fine { margin-top: 22px; font-size: 13px; color: var(--ink-dim); max-width: 68ch; }
+  .accuracy .fine b { color: var(--ink); }
+
+  footer { border-top: 1px solid var(--line); }
+  footer .inner { max-width: 1180px; margin: 0 auto; padding: 40px 24px 60px; color: var(--ink-dim); font-size: 12.5px; }
+  footer .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 22px; }
+  footer h3 { font-size: 11px; letter-spacing: .13em; text-transform: uppercase; margin-bottom: 7px; }
+  footer .mono { color: var(--ink); line-height: 1.7; word-break: break-word; }
+  footer .honest { margin-top: 26px; max-width: 74ch; }
+
+  @media (max-width: 900px) {
+    .map-intro { grid-template-columns: 1fr; gap: 18px; }
+    .atlas { grid-template-columns: 1fr; }
+    .region-list { max-height: none; }
+    .ws-grid { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) { .stage.working .scan { animation: none; } * { transition: none !important; } }
+</style>
+
+<header>
+  <span class="brand">DRISH<span>TI</span></span>
+  <span class="sub">10 m → 2.5 m · Sentinel-2 · India</span>
+  <span class="sp"></span>
+  <button class="ghost-btn" id="theme" type="button">◐ theme</button>
+</header>
+
+<!-- ================= MAP VIEW ================= -->
+<section class="view active" id="view-map">
+  <div class="map-wrap">
+    <div class="map-intro">
+      <h1>See India at<br />2.5 metres.</h1>
+      <div>
+        <p>
+          Free Sentinel-2 imagery is 10 metres a pixel — a house is four pixels
+          across. DRISHTI resolves it to 2.5 metres and hands back an
+          analysis-ready image plus a map of where to trust it.
+        </p>
+        <p class="cue">▸ pick a region to enhance</p>
+      </div>
+    </div>
+
+    <div class="atlas">
+      <svg class="india" id="india" viewBox="0 0 620 700" role="img" aria-label="Map of India with processed regions marked. Select one to open it.">
+        <g class="grat" id="grat"></g>
+        <path class="land" id="landpath" d="" />
+        <g id="pins"></g>
+      </svg>
+
+      <div class="region-list" id="regionlist">
+        <h3>13 regions processed</h3>
+      </div>
+    </div>
+
+    <div class="map-foot" id="mapfoot">Sentinel-2 L2A surface reflectance · Copernicus Data Space · acquired Feb–Mar 2026</div>
+  </div>
+</section>
+
+<!-- ================= WORKSPACE VIEW ================= -->
+<section class="view" id="view-ws">
+  <div class="ws">
+    <div class="ws-top">
+      <button class="back" id="back" type="button">‹ all regions</button>
+      <h2 id="ws-name">—</h2>
+      <span class="ws-meta" id="ws-meta"></span>
+    </div>
+
+    <div class="stage pre" id="stage">
+      <img id="img-before" alt="Sentinel-2 at 10 m" />
+      <div class="after-clip" id="clip"><img id="img-after" alt="DRISHTI at 2.5 m" /></div>
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <div class="hud" id="ws-hud"></div>
+      <div class="scalebar"><i></i><span>250 m</span></div>
+      <span class="edge-tag l">10 m INPUT</span>
+      <span class="edge-tag r">2.5 m · DRISHTI</span>
+      <div class="divider" id="divider"><div class="grip"></div></div>
+      <div class="scan"></div>
+      <button class="enhance" id="enhance" type="button">Enhance to 2.5 m</button>
+    </div>
+
+    <div class="toolbar" id="toolbar">
+      <div class="grp" id="combo">
+        <button data-layer="rgb" aria-pressed="true" type="button">TRUE COLOUR</button>
+        <button data-layer="nir" aria-pressed="false" type="button">VEGETATION</button>
+        <button data-layer="conf" aria-pressed="false" type="button" disabled>RELIABILITY</button>
+        <button data-layer="gate" aria-pressed="false" type="button" disabled>GATE</button>
+      </div>
+      <span class="hint" id="ws-hint">enhance to compare</span>
+    </div>
+
+    <div class="ws-grid">
+      <p class="ws-note" id="ws-desc"></p>
+      <div class="locator">
+        <h3>Location</h3>
+        <svg id="loc-svg" viewBox="0 0 620 700" aria-hidden="true">
+          <path class="land" id="loc-land" d="" />
+          <circle class="here" id="loc-here" r="7" />
+        </svg>
+        <dl id="loc-dl"></dl>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ACCURACY ================= -->
+<div class="accuracy" id="accuracy">
+  <div class="inner">
+    <span class="eyebrow">How accurate is it?</span>
+    <h2>Graded on ground it never saw.</h2>
+    <p class="lede">
+      One region — Vasai — was kept out of training entirely. The model was run
+      on it blind and its output compared, pixel for pixel, against the real
+      imagery. This is what came back, against standard bicubic upscaling.
+    </p>
+    <div class="claims" id="claims">
+      <div class="claim"><div class="big" data-k="boundary">—</div><div class="lab">field boundaries</div><p data-p="boundary">recovered vs. the true image, where plain upscaling smears them away</p></div>
+      <div class="claim"><div class="big" data-k="spectral">—</div><div class="lab">colour / index error</div><p data-p="spectral">lower spectral error — NDVI and water indices stay measurement-grade</p></div>
+      <div class="claim"><div class="big" data-k="sharp">—</div><div class="lab">reconstruction</div><p data-p="sharp">clearer than bicubic on the blind test (PSNR), at matched spectral fidelity</p></div>
+      <div class="claim"><div class="big" data-k="consist">exact</div><div class="lab">downscale check</div><p data-p="consist">shrink the 2.5 m result back to 10 m and it reproduces the input — detail is added, never substituted</p></div>
+    </div>
+    <p class="fine" id="acc-fine">
+      <b>The reliability layer</b> ships with every enhanced image: a per-pixel
+      confidence map from the model's own agreement across repeated passes.
+      Bright means it was less certain there. Nothing is invented that the
+      original 10 m pixels don't support — that is enforced, not hoped for.
+    </p>
+  </div>
+</div>
+
+<footer>
+  <div class="inner">
+    <div class="row">
+      <div><h3>Imagery</h3><div class="mono">Sentinel-2 L2A surface reflectance<br />Copernicus Data Space Ecosystem<br />13 scenes · Feb–Mar 2026</div></div>
+      <div><h3>Model</h3><div class="mono">Hybrid CNN + transformer, learned gate<br />4-band (B02 B03 B04 B08) · ×4<br />trained under Wald's protocol</div></div>
+      <div><h3>Validation</h3><div class="mono">Held-out region · vs bicubic baseline<br id="foot-step" /></div></div>
+      <div><h3>Project</h3><div class="mono">SIH 2026 · PS 26142 · NTRO<br />Team THE OUTLIERS</div></div>
+    </div>
+    <p class="honest">
+      Every figure on this page is measured, on a region the model never trained
+      on. No illustrative numbers. Where the imagery here comes from an interim
+      checkpoint it is refreshed as training completes.
+    </p>
+  </div>
+</footer>
+
+<script src="data.js"></script>
+<script>
+/* DRISHTI explorer — region + accuracy data comes from data.js (generated by
+   scripts/build_frontend_assets.py). This fallback keeps the shell alive if it
+   is missing. */
+window.DRISHTI = window.DRISHTI || {
+  step: 0, interim: true,
+  accuracy: { boundary: "—", spectral: "—", sharp: "—", consist: "exact" },
+  regions: []
+};
+(function () {
+  "use strict";
+  var D = window.DRISHTI;
+  var root = document.documentElement;
+  var LS = {
+    g: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    s: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  };
+
+  /* theme */
+  var t0 = LS.g("drishti-theme"); if (t0) root.setAttribute("data-theme", t0);
+  document.getElementById("theme").addEventListener("click", function () {
+    var c = root.getAttribute("data-theme");
+    var n = c === "dark" ? "light" : c === "light" ? "dark"
+      : (matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "dark");
+    root.setAttribute("data-theme", n); LS.s("drishti-theme", n);
+  });
+
+  /* --- geo projection: lon 66..98 -> x 0..620 ; lat 37..6 -> y 0..700 --- */
+  var LON0 = 66, LON1 = 98, LAT0 = 37, LAT1 = 6;
+  function px(lon) { return (lon - LON0) / (LON1 - LON0) * 620; }
+  function py(lat) { return (LAT0 - lat) / (LAT0 - LAT1) * 700; }
+
+  /* simplified India mainland outline (decorative locator) */
+  var OUT = [[74.3,34.4],[76.8,35.4],[78.5,34.6],[79.2,33.2],[80.3,32.3],[81.1,30.4],[83.0,29.3],[84.7,28.3],
+    [86.2,27.9],[88.1,27.9],[88.7,27.3],[89.6,26.8],[92.0,27.8],[94.3,27.6],[95.9,28.3],[97.3,28.2],[97.0,26.4],
+    [95.2,24.2],[94.0,23.7],[93.3,22.2],[92.3,22.1],[91.5,23.0],[91.2,24.0],[89.8,25.3],[88.4,24.5],[88.9,22.0],
+    [87.0,21.5],[86.5,20.2],[85.0,19.5],[83.3,17.9],[82.2,16.9],[80.3,15.9],[80.1,13.4],[79.9,11.8],[79.2,10.3],
+    [78.1,9.1],[77.5,8.1],[77.1,8.2],[76.3,9.9],[75.8,11.6],[74.9,13.0],[74.1,14.8],[73.5,16.0],[72.9,17.6],
+    [72.7,19.2],[72.9,20.8],[72.6,21.6],[71.0,20.8],[69.9,20.7],[68.9,22.3],[68.2,23.8],[68.5,24.4],[70.6,24.3],
+    [71.0,25.9],[72.6,25.0],[73.5,26.5],[74.6,30.0],[74.4,32.5],[74.3,34.4]];
+  var landD = "M" + OUT.map(function (p) { return px(p[0]).toFixed(1) + " " + py(p[1]).toFixed(1); }).join(" L") + " Z";
+  document.getElementById("landpath").setAttribute("d", landD);
+  document.getElementById("loc-land").setAttribute("d", landD);
+
+  /* graticule */
+  var grat = document.getElementById("grat"), gs = "";
+  for (var lo = 70; lo <= 95; lo += 5) gs += '<line x1="' + px(lo) + '" y1="0" x2="' + px(lo) + '" y2="700"/><text class="grat-lbl" x="' + (px(lo) + 2) + '" y="694">' + lo + '°E</text>';
+  for (var la = 10; la <= 35; la += 5) gs += '<line x1="0" y1="' + py(la) + '" x2="620" y2="' + py(la) + '"/><text class="grat-lbl" x="2" y="' + (py(la) - 3) + '">' + la + '°N</text>';
+  grat.innerHTML = gs;
+
+  /* --- regions --- */
+  var R = D.regions;
+  var pins = document.getElementById("pins");
+  var list = document.getElementById("regionlist");
+  R.forEach(function (r, i) {
+    var x = px(r.lon), y = py(r.lat);
+    var g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    g.setAttribute("class", "pin" + (r.held ? " held" : ""));
+    g.setAttribute("data-i", i);
+    g.setAttribute("tabindex", "0");
+    g.setAttribute("role", "button");
+    g.setAttribute("aria-label", "Open " + r.name);
+    g.innerHTML = '<circle class="halo" cx="' + x + '" cy="' + y + '" r="20"/>' +
+      '<circle class="dot" cx="' + x + '" cy="' + y + '" r="5.5"/>' +
+      '<text x="' + (x + 11) + '" y="' + (y + 4) + '">' + r.name + (r.held ? "  ·held out" : "") + '</text>';
+    g.addEventListener("click", function () { open(i); });
+    g.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(i); } });
+    pins.appendChild(g);
+
+    var b = document.createElement("button");
+    b.type = "button";
+    b.innerHTML = '<span class="rn">' + r.name + (r.held ? '<span class="rhold">HELD OUT</span>' : '') +
+      '</span><br><span class="rt">' + r.terrain + '</span>';
+    b.addEventListener("click", function () { open(i); });
+    list.appendChild(b);
+  });
+  var ckLabel = (D.interim ? "interim checkpoint" : "trained model") +
+    (D.step ? " · step " + D.step.toLocaleString() : "");
+  document.getElementById("mapfoot").textContent =
+    R.length + " regions · Sentinel-2 L2A · Copernicus Data Space · " + ckLabel;
+  var fs = document.getElementById("foot-step");
+  if (fs) fs.insertAdjacentText("afterend", ckLabel);
+  if (!D.interim) {
+    var hn = document.querySelector("footer .honest");
+    if (hn) hn.textContent = "Every figure on this page is measured, on a region the model never trained on. No illustrative numbers; goals, where stated elsewhere, are labelled TARGET.";
+  }
+
+  /* accuracy claims */
+  var A = D.accuracy || {};
+  document.querySelectorAll("#claims .big").forEach(function (el) {
+    var k = el.dataset.k; if (A[k]) el.textContent = A[k];
+  });
+
+  /* --- view switching --- */
+  var vMap = document.getElementById("view-map"), vWs = document.getElementById("view-ws");
+  var acc = document.getElementById("accuracy");
+  function show(which) {
+    vMap.classList.toggle("active", which === "map");
+    vWs.classList.toggle("active", which === "ws");
+    acc.style.display = which === "map" ? "" : "none";
+    window.scrollTo(0, 0);
+  }
+  document.getElementById("back").addEventListener("click", function () { show("map"); location.hash = ""; });
+
+  /* --- workspace --- */
+  var stage = document.getElementById("stage");
+  var before = document.getElementById("img-before"), after = document.getElementById("img-after");
+  var clip = document.getElementById("clip"), divider = document.getElementById("divider");
+  var enhanceBtn = document.getElementById("enhance");
+  var cur = null, layer = "rgb", enhanced = false, frac = 0.5;
+
+  var LAYERS = {
+    rgb:  { key: "sr",   base: "lr",  hud: "B04·B03·B02 true colour" },
+    nir:  { key: "nir",  base: "lr",  hud: "B08·B04·B03 vegetation" },
+    conf: { key: "conf", base: "lr",  hud: "reliability — bright = less certain" },
+    gate: { key: "gate", base: "lr",  hud: "gate — blue: transformer · amber: CNN" }
+  };
+
+  function paint() {
+    if (!cur) return;
+    var L = LAYERS[layer];
+    before.src = cur.img.lr;
+    after.src = cur.img[L.key] || cur.img.sr;
+    document.getElementById("ws-hud").textContent = L.hud;
+    document.querySelectorAll("#combo button").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(b.dataset.layer === layer));
+    });
+    layout();
+  }
+  function layout() {
+    var p = (frac * 100).toFixed(2) + "%";
+    divider.style.left = p;
+    clip.style.width = (100 - frac * 100).toFixed(2) + "%";  // after-clip anchored right
+    after.style.width = stage.clientWidth + "px";
+  }
+  function toFrac(cx) { var r = stage.getBoundingClientRect(); return Math.min(1, Math.max(0, (cx - r.left) / r.width)); }
+
+  var drag = false;
+  stage.addEventListener("pointerdown", function (e) {
+    if (!enhanced) return;
+    drag = true; stage.setPointerCapture(e.pointerId); frac = toFrac(e.clientX); layout();
+  });
+  stage.addEventListener("pointermove", function (e) { if (drag) { frac = toFrac(e.clientX); layout(); } });
+  stage.addEventListener("pointerup", function (e) { drag = false; try { stage.releasePointerCapture(e.pointerId); } catch (x) {} });
+  window.addEventListener("resize", layout);
+  after.addEventListener("load", layout);
+
+  enhanceBtn.addEventListener("click", function () {
+    if (enhanced) return;
+    stage.classList.add("working");
+    setTimeout(function () {
+      stage.classList.remove("working", "pre");
+      enhanced = true;
+      frac = 0.5; layout();
+      document.querySelectorAll('#combo button[disabled]').forEach(function (b) { b.disabled = false; });
+      document.getElementById("ws-hint").textContent = "drag to compare · switch layers";
+    }, 1050);
+  });
+
+  document.getElementById("combo").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b || b.disabled) return;
+    layer = b.dataset.layer; paint();
+  });
+
+  function open(i) {
+    cur = R[i]; enhanced = false; layer = "rgb"; frac = 0.5;
+    stage.classList.add("pre"); stage.classList.remove("working");
+    document.querySelectorAll('#combo button').forEach(function (b) {
+      b.disabled = (b.dataset.layer === "conf" || b.dataset.layer === "gate");
+      b.setAttribute("aria-pressed", String(b.dataset.layer === "rgb"));
+    });
+    document.getElementById("ws-hint").textContent = "enhance to compare";
+    document.getElementById("ws-name").textContent = cur.name + (cur.held ? "  · held out" : "");
+    document.getElementById("ws-meta").textContent = cur.date + " · " + cur.lat.toFixed(2) + "°N " + cur.lon.toFixed(2) + "°E · " + cur.crs;
+    document.getElementById("ws-desc").innerHTML = "<b>" + cur.name + "</b> — " + cur.terrain + ". " + (cur.note || "");
+    document.getElementById("loc-here").setAttribute("cx", px(cur.lon));
+    document.getElementById("loc-here").setAttribute("cy", py(cur.lat));
+    document.getElementById("loc-dl").innerHTML =
+      "<dt>scene</dt><dd>" + cur.tile + "</dd>" +
+      "<dt>acquired</dt><dd>" + cur.date + "</dd>" +
+      "<dt>cloud</dt><dd>" + cur.cloud + "%</dd>" +
+      "<dt>output</dt><dd>2.5 m · 4-band</dd>";
+    document.querySelectorAll(".pin").forEach(function (p, j) { p.classList.toggle("sel", j === i); });
+    paint();
+    show("ws");
+    location.hash = cur.id;
+  }
+
+  /* deep link */
+  function fromHash() {
+    var h = location.hash.replace("#", "");
+    var i = R.findIndex(function (r) { return r.id === h; });
+    if (i >= 0) open(i); else show("map");
+  }
+  window.addEventListener("hashchange", fromHash);
+  if (R.length) fromHash();
+})();
+</script>

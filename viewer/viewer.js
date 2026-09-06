@@ -128,6 +128,9 @@ $("fit").addEventListener("click", fit);
 $("tgl-unc").addEventListener("change", (e) => {
   $("ov-unc").hidden = !e.target.checked;
 });
+$("tgl-gate").addEventListener("change", (e) => {
+  $("ov-gate").hidden = !e.target.checked;
+});
 $("tgl-qa").addEventListener("change", (e) => {
   $("ov-qa").hidden = !e.target.checked;
 });
@@ -137,39 +140,50 @@ window.addEventListener("resize", fit);
 function renderStats(meta) {
   const dl = $("stats");
   const rows = [];
-  const q = meta.qa || {};
-  const c = q.consistency_overall || {};
-  rows.push(["model", q.model || "—"]);
+  const r = meta.run || {};
+  const c = r.consistency_overall || {};
+  rows.push(["model", r.model || "—"]);
+  if (r.train_step != null) rows.push(["train step", r.train_step]);
   rows.push(["output px", `${meta.width} × ${meta.height}`]);
   rows.push(["SR pixel", `${(meta.sr_res_m || [])[0] ?? "?"} m`]);
   rows.push(["CRS", meta.sr_crs || "—"]);
+  if (r.confidence_mean_reflectance != null)
+    rows.push(["confidence mean · p95",
+      `${r.confidence_mean_reflectance.toExponential(2)} · ${(r.confidence_p95_reflectance ?? 0).toExponential(2)}`]);
+  if (r.gate_mean != null)
+    rows.push(["gate mean (1 = CNN)", r.gate_mean.toFixed(3)]);
   if (c.rmse_10m != null)
     rows.push(["degrade↔LR · 10 m", `RMSE ${c.rmse_10m} · SAM ${c.sam_10m}°`]);
-  if (c.rmse_20m != null)
-    rows.push(["degrade↔LR · 20 m", `RMSE ${c.rmse_20m} · SAM ${c.sam_20m}°`]);
-  if (q.n_tiles != null)
-    rows.push(["tiles (failed)", `${q.n_tiles} (${q.n_failed})`]);
-  if (meta.qa_failed_fraction != null)
-    rows.push(["fallback area", (meta.qa_failed_fraction * 100).toFixed(2) + "%"]);
-  if (meta.uncertainty_scale_max != null)
-    rows.push(["uncertainty p98", meta.uncertainty_scale_max.toExponential(2)]);
-  dl.innerHTML = rows
-    .map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`)
-    .join("");
+  if (r.n_tiles != null)
+    rows.push(["tiles (flagged)", `${r.n_tiles} (${r.n_tiles_flagged ?? r.n_failed ?? 0})`]);
+  if (meta.qa_flagged_fraction != null)
+    rows.push(["flagged area", (meta.qa_flagged_fraction * 100).toFixed(2) + "%"]);
+  if (meta.confidence_scale_max != null)
+    rows.push(["confidence p98 (scale)", meta.confidence_scale_max.toExponential(2)]);
+  dl.innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
+
+  const kind = meta.confidence_kind;
+  $("note").textContent = kind === "tta_spread"
+    ? "Confidence here is a test-time-augmentation spread — a proxy. MC-dropout confidence ships with the DRISHTI model."
+    : kind === "mc_dropout_std"
+    ? "Confidence is the per-pixel spread over MC-dropout passes: bright = the model was guessing. The gate map (blue) marks where the transformer branch carried the reconstruction."
+    : "";
+  if (r.model) $("tag-right").textContent = `SR · ${(r.resolution_m ?? 2.5)} m · ${String(r.model).split(" ")[0]}`;
 }
 
 // ---- boot ----
 (async function main() {
+  let meta = {};
   try {
-    const meta = await fetch("assets/preview.json").then((r) => r.json());
+    meta = await fetch("assets/preview.json").then((r) => r.json());
     renderStats(meta);
-    if (meta.uncertainty_scale_max != null) $("ov-unc").src = "assets/uncertainty.png";
-    if (meta.qa_failed_fraction != null) $("ov-qa").src = "assets/qa_mask.png";
+    if (meta.confidence_scale_max != null) $("ov-unc").src = "assets/confidence.png";
+    if (meta.gate_mean != null) $("ov-gate").src = "assets/gate.png";
+    if (meta.qa_flagged_fraction != null) $("ov-qa").src = "assets/qa_mask.png";
   } catch (e) {
     $("stats").innerHTML = "<dt>error</dt><dd>run make_preview.py first</dd>";
   }
   await loadSet("rgb");
-  // overlays share the SR grid
-  for (const ov of [$("ov-unc"), $("ov-qa")]) ov.style.width = img.w + "px";
+  for (const ov of [$("ov-unc"), $("ov-gate"), $("ov-qa")]) ov.style.width = img.w + "px";
   fit();
 })();

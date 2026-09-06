@@ -21,7 +21,7 @@ CDSE_CLIENT_ID=...
 CDSE_CLIENT_SECRET=...
 ```
 
-## Pipeline so far (build-order steps 1–4)
+## Pipeline (build-order steps 1–5)
 
 ### 1. Fetch a Sentinel-2 L2A scene
 
@@ -79,15 +79,79 @@ python -m http.server -d viewer 8000   # then open http://localhost:8000
 ```
 
 Self-contained, no external dependencies, runs from `file://`. Drag the handle
-to swipe LR↔SR, scroll to zoom, drag to pan; toggle the uncertainty and
-QA-fallback overlays; the panel shows the run's consistency metrics.
+to swipe LR↔SR, scroll to zoom, drag to pan; toggle the confidence, gate and
+QA-flag overlays; the panel shows the run's metrics.
+
+### 5. The DRISHTI model
+
+Hybrid two-branch network (CNN residual-channel-attention + Swin
+window-attention, learned per-pixel gate), 4-band RGBN (B02 B03 B04 B08), ×4.
+Every output is forced to be **exactly** downscale-consistent:
+`avg_pool(SR, 4) == LR` to machine precision (`scripts/check_constraint.py`).
+
+Trained under **Wald's protocol**: the only ground truth that exists without a
+2.5 m reference is the real 10 m scene itself, so the model learns
+40 m → 10 m (box-filter degrade, exact supervision) and is applied at
+10 m → 2.5 m. One region (Vasai) is held out entirely — never sampled in
+training, used only for the measured evaluation.
+
+```bash
+# train (12 scenes, Vasai held out)
+python scripts/train.py --train data/raw/{mumbai,nashik,pune,surat,ludhiana,nagpur,\
+coimbatore,ahmedabad,hyderabad,jaipur,bhimavaram,indore}_s2l2a.tif \
+  --holdout data/raw/vasai_s2l2a.tif --sigma 0 \
+  --steps 35000 --batch 8 --ch 96 --cnn-blocks 12 --swin-depth 6 --out checkpoints/drishti
+
+# measured evaluation on the held-out scene, vs bicubic
+python scripts/evaluate.py --ckpt checkpoints/drishti/best.pt \
+  --scene data/raw/vasai_s2l2a.tif --out outputs/eval_vasai
+
+# downstream task: field-boundary F1 before vs after SR
+python scripts/downstream_boundary.py --ckpt checkpoints/drishti/best.pt \
+  --scene data/raw/vasai_s2l2a.tif --out outputs/eval_vasai
+
+# the product: real 10 m scene -> 2.5 m + confidence + gate rasters
+python scripts/run_drishti.py --ckpt checkpoints/drishti/best.pt \
+  --scene data/raw/vasai_s2l2a.tif --out outputs/vasai_drishti_sr.tif
+python scripts/make_preview.py --lr data/raw/vasai_s2l2a.tif --sr outputs/vasai_drishti_sr.tif
+```
+
+`evaluate.py` reports PSNR / SSIM / SAM° / reflectance-L1 / NDVI-MAE /
+block-average consistency against a bicubic baseline, plus opensr-test
+hallucination / omission / improvement. `run_drishti.py` writes the 4-band
+2.5 m COG alongside `_confidence.tif` (MC-dropout std), `_gate.tif` (where the
+transformer branch was used) and `_qa_mask.tif`.
+
+### Measured — held-out Vasai, never trained on
+
+Wald protocol (box-filter ×4 decimation), 1024 px crop, checkpoint at step 13 500,
+vs bicubic. Full report in `outputs/eval_vasai/`.
+
+| metric | bicubic | DRISHTI |
+|---|---|---|
+| PSNR (dB) | 35.26 | **36.41** |
+| SSIM | 0.870 | **0.896** |
+| SAM (°) | 3.09 | **2.58** |
+| reflectance L1 | 0.0173 | **0.0151** |
+| NDVI MAE | 0.0513 | **0.0420** |
+| block-average consistency (refl) | 6.0e-3 | **1.2e-5** |
+| opensr-test improvement | 0.11 | **0.23** |
+| opensr-test omission | 0.72 | **0.52** |
+| **field-boundary F1** (downstream) | **0.31** | **0.81** |
+
+The headline is the last row: bicubic recovers 19 % of the true field edges,
+DRISHTI 59 %, at the same precision. Every number is measured; no figure here is
+illustrative, and goals (where stated elsewhere) are labelled TARGET.
 
 ## Layout
 
 ```
-src/drishti/fetch.py     Sentinel-2 L2A fetch (CDSE Process API)
-src/drishti/tiling.py    tile iterator + feather-blend stitcher
-src/drishti/infer.py     pretrained SR baseline + QA gate + uncertainty proxy
-scripts/                 CLI wrappers
-viewer/                  swipe-comparison viewer
+src/drishti/fetch.py        Sentinel-2 L2A fetch (CDSE Process API)
+src/drishti/data.py         Wald-protocol pairs, degrade/upsample operators
+src/drishti/tiling.py       tile iterator + feather-blend stitcher
+src/drishti/metrics.py      losses (L1 + SAM + consistency) and reported metrics
+src/drishti/model/drishti.py  hybrid CNN+Swin network, gate, exact low-freq constraint
+src/drishti/infer.py        pretrained SEN2SR-Lite baseline + QA gate
+scripts/                    CLI wrappers (fetch / train / evaluate / run_drishti / ...)
+viewer/                     swipe-comparison viewer
 ```

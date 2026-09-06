@@ -14,3 +14,6 @@ outputs/
 
 # generated viewer previews (rebuild with scripts/make_preview.py)
 viewer/assets/
+
+# packed single-file build of the frontend (rebuild with scripts/pack_frontend.py)
+frontend/*.standalone.html

@@ -58,5 +58,11 @@ Python, PyTorch, rasterio/GDAL, Cloud-Optimised GeoTIFF, FastAPI, MapLibre viewe
 Docker (must be able to run air-gapped).
 
 ## Status
-Nothing trained yet. The deck and technical-approach figure exist; the imagery in
-them is SIMULATED and must be replaced with real output once step 3 produces it.
+Build steps 1–5 done. DRISHTI trained (Wald protocol, 12 Indian scenes, Vasai held
+out) — `checkpoints/drishti/best.pt`, step 13 500. Measured on held-out Vasai:
++1.15 dB PSNR, SSIM 0.896, SAM 2.58°, block-avg consistency 1.2e-5, field-boundary
+F1 0.31→0.81 vs bicubic. Full report in `outputs/eval_vasai/`. All 13 scenes
+super-resolved to 2.5 m in `outputs/sr/` with confidence + gate rasters.
+Frontend: `frontend/` (interactive explorer) + `viewer/` (swipe debug tool).
+Remaining: replace SIMULATED imagery in the deck/technical figure with this output;
+optional perceptual fine-tune; 10-band model is a later round.

@@ -1,0 +1,272 @@
+window.DRISHTI = {
+ "step": 13500,
+ "interim": false,
+ "accuracy": {
+  "boundary": "2.7x",
+  "spectral": "-49%",
+  "sharp": "+1.2 dB",
+  "consist": "exact"
+ },
+ "regions": [
+  {
+   "id": "vasai",
+   "name": "Vasai",
+   "lon": 72.83,
+   "lat": 19.38,
+   "crs": "EPSG:32643",
+   "date": "2026-02-25",
+   "cloud": 0.0,
+   "tile": "T42QZG",
+   "held": true,
+   "terrain": "coastal wetlands & salt pans",
+   "note": "The held-out region \u2014 the model was trained without ever seeing it.",
+   "img": {
+    "lr": "assets/vasai_lr.jpg",
+    "sr": "assets/vasai_sr.jpg",
+    "nir": "assets/vasai_nir.jpg",
+    "conf": "assets/vasai_conf.jpg",
+    "gate": "assets/vasai_gate.jpg"
+   }
+  },
+  {
+   "id": "mumbai",
+   "name": "Mumbai",
+   "lon": 72.87,
+   "lat": 19.07,
+   "crs": "EPSG:32643",
+   "date": "2026-03-27",
+   "cloud": 1.02,
+   "tile": "T42QZG",
+   "held": false,
+   "terrain": "dense island metropolis",
+   "note": "High-rise cores, reclaimed land, the hardest test for a super-resolver.",
+   "img": {
+    "lr": "assets/mumbai_lr.jpg",
+    "sr": "assets/mumbai_sr.jpg",
+    "nir": "assets/mumbai_nir.jpg",
+    "conf": "assets/mumbai_conf.jpg",
+    "gate": "assets/mumbai_gate.jpg"
+   }
+  },
+  {
+   "id": "pune",
+   "name": "Pune",
+   "lon": 73.85,
+   "lat": 18.55,
+   "crs": "EPSG:32643",
+   "date": "2026-03-29",
+   "cloud": 4.84,
+   "tile": "T43QCA",
+   "held": false,
+   "terrain": "Deccan plateau city",
+   "note": "Riverine suburbs against dry basalt uplands.",
+   "img": {
+    "lr": "assets/pune_lr.jpg",
+    "sr": "assets/pune_sr.jpg",
+    "nir": "assets/pune_nir.jpg",
+    "conf": "assets/pune_conf.jpg",
+    "gate": "assets/pune_gate.jpg"
+   }
+  },
+  {
+   "id": "surat",
+   "name": "Surat",
+   "lon": 72.83,
+   "lat": 21.18,
+   "crs": "EPSG:32643",
+   "date": "2026-03-27",
+   "cloud": 0.0,
+   "tile": "T42QZJ",
+   "held": false,
+   "terrain": "Tapi estuary & textile city",
+   "note": "Delta channels, docks, tight urban blocks.",
+   "img": {
+    "lr": "assets/surat_lr.jpg",
+    "sr": "assets/surat_sr.jpg",
+    "nir": "assets/surat_nir.jpg",
+    "conf": "assets/surat_conf.jpg",
+    "gate": "assets/surat_gate.jpg"
+   }
+  },
+  {
+   "id": "nashik",
+   "name": "Nashik",
+   "lon": 73.8,
+   "lat": 20.0,
+   "crs": "EPSG:32643",
+   "date": "2026-03-29",
+   "cloud": 0.86,
+   "tile": "T43QCC",
+   "held": false,
+   "terrain": "plateau farmland & vineyards",
+   "note": "Regular field geometry \u2014 where boundary recovery shows.",
+   "img": {
+    "lr": "assets/nashik_lr.jpg",
+    "sr": "assets/nashik_sr.jpg",
+    "nir": "assets/nashik_nir.jpg",
+    "conf": "assets/nashik_conf.jpg",
+    "gate": "assets/nashik_gate.jpg"
+   }
+  },
+  {
+   "id": "ludhiana",
+   "name": "Ludhiana",
+   "lon": 75.85,
+   "lat": 30.9,
+   "crs": "EPSG:32643",
+   "date": "2026-02-25",
+   "cloud": 0.12,
+   "tile": "T43REQ",
+   "held": false,
+   "terrain": "Indo-Gangetic canal cropland",
+   "note": "Wheat-belt parcels on a rectilinear canal grid.",
+   "img": {
+    "lr": "assets/ludhiana_lr.jpg",
+    "sr": "assets/ludhiana_sr.jpg",
+    "nir": "assets/ludhiana_nir.jpg",
+    "conf": "assets/ludhiana_conf.jpg",
+    "gate": "assets/ludhiana_gate.jpg"
+   }
+  },
+  {
+   "id": "nagpur",
+   "name": "Nagpur",
+   "lon": 79.1,
+   "lat": 21.15,
+   "crs": "EPSG:32644",
+   "date": "2026-02-26",
+   "cloud": 2.54,
+   "tile": "T44QLJ",
+   "held": false,
+   "terrain": "central Indian city & citrus country",
+   "note": "Compact city ringed by orchard land.",
+   "img": {
+    "lr": "assets/nagpur_lr.jpg",
+    "sr": "assets/nagpur_sr.jpg",
+    "nir": "assets/nagpur_nir.jpg",
+    "conf": "assets/nagpur_conf.jpg",
+    "gate": "assets/nagpur_gate.jpg"
+   }
+  },
+  {
+   "id": "coimbatore",
+   "name": "Coimbatore",
+   "lon": 77.0,
+   "lat": 11.05,
+   "crs": "EPSG:32643",
+   "date": "2026-02-06",
+   "cloud": 0.55,
+   "tile": "T43PGN",
+   "held": false,
+   "terrain": "Western Ghats foothills",
+   "note": "Textile-belt sprawl rising into the hills.",
+   "img": {
+    "lr": "assets/coimbatore_lr.jpg",
+    "sr": "assets/coimbatore_sr.jpg",
+    "nir": "assets/coimbatore_nir.jpg",
+    "conf": "assets/coimbatore_conf.jpg",
+    "gate": "assets/coimbatore_gate.jpg"
+   }
+  },
+  {
+   "id": "ahmedabad",
+   "name": "Ahmedabad",
+   "lon": 72.6,
+   "lat": 23.05,
+   "crs": "EPSG:32643",
+   "date": "2026-02-25",
+   "cloud": 0.12,
+   "tile": "T42QZL",
+   "held": false,
+   "terrain": "arid Sabarmati corridor",
+   "note": "Low-contrast dryland \u2014 a stress test for spectral fidelity.",
+   "img": {
+    "lr": "assets/ahmedabad_lr.jpg",
+    "sr": "assets/ahmedabad_sr.jpg",
+    "nir": "assets/ahmedabad_nir.jpg",
+    "conf": "assets/ahmedabad_conf.jpg",
+    "gate": "assets/ahmedabad_gate.jpg"
+   }
+  },
+  {
+   "id": "hyderabad",
+   "name": "Hyderabad",
+   "lon": 78.5,
+   "lat": 17.45,
+   "crs": "EPSG:32644",
+   "date": "2026-02-26",
+   "cloud": 2.65,
+   "tile": "T43QHV",
+   "held": false,
+   "terrain": "granite plateau & lakes",
+   "note": "Boulder fields, reservoirs, a spread-out tech corridor.",
+   "img": {
+    "lr": "assets/hyderabad_lr.jpg",
+    "sr": "assets/hyderabad_sr.jpg",
+    "nir": "assets/hyderabad_nir.jpg",
+    "conf": "assets/hyderabad_conf.jpg",
+    "gate": "assets/hyderabad_gate.jpg"
+   }
+  },
+  {
+   "id": "jaipur",
+   "name": "Jaipur",
+   "lon": 75.8,
+   "lat": 26.95,
+   "crs": "EPSG:32643",
+   "date": "2026-02-22",
+   "cloud": 0.0,
+   "tile": "T43REK",
+   "held": false,
+   "terrain": "semi-arid Aravalli edge",
+   "note": "Walled city and desert fringe.",
+   "img": {
+    "lr": "assets/jaipur_lr.jpg",
+    "sr": "assets/jaipur_sr.jpg",
+    "nir": "assets/jaipur_nir.jpg",
+    "conf": "assets/jaipur_conf.jpg",
+    "gate": "assets/jaipur_gate.jpg"
+   }
+  },
+  {
+   "id": "bhimavaram",
+   "name": "Bhimavaram",
+   "lon": 81.55,
+   "lat": 16.55,
+   "crs": "EPSG:32644",
+   "date": "2026-02-08",
+   "cloud": 0.02,
+   "tile": "T44QND",
+   "held": false,
+   "terrain": "Godavari\u2013Krishna delta",
+   "note": "A mosaic of aquaculture ponds \u2014 fine water boundaries everywhere.",
+   "img": {
+    "lr": "assets/bhimavaram_lr.jpg",
+    "sr": "assets/bhimavaram_sr.jpg",
+    "nir": "assets/bhimavaram_nir.jpg",
+    "conf": "assets/bhimavaram_conf.jpg",
+    "gate": "assets/bhimavaram_gate.jpg"
+   }
+  },
+  {
+   "id": "indore",
+   "name": "Indore",
+   "lon": 75.9,
+   "lat": 22.75,
+   "crs": "EPSG:32643",
+   "date": "2026-02-22",
+   "cloud": 0.0,
+   "tile": "T43QEF",
+   "held": false,
+   "terrain": "Malwa plateau black-soil farmland",
+   "note": "Broad dark fields, a compact urban core.",
+   "img": {
+    "lr": "assets/indore_lr.jpg",
+    "sr": "assets/indore_sr.jpg",
+    "nir": "assets/indore_nir.jpg",
+    "conf": "assets/indore_conf.jpg",
+    "gate": "assets/indore_gate.jpg"
+   }
+  }
+ ]
+};

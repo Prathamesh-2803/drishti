@@ -16,8 +16,9 @@
       <option value="nir">false colour (B08·B04·B03)</option>
     </select>
   </label>
-  <label><input type="checkbox" id="tgl-unc" /> uncertainty</label>
-  <label><input type="checkbox" id="tgl-qa" /> QA fallback mask</label>
+  <label><input type="checkbox" id="tgl-unc" /> confidence</label>
+  <label><input type="checkbox" id="tgl-gate" /> gate</label>
+  <label><input type="checkbox" id="tgl-qa" /> QA flags</label>
   <span class="sep">·</span>
   <button id="fit">fit</button>
   <span class="hint">scroll = zoom · drag = pan · drag the handle = swipe</span>
@@ -29,19 +30,19 @@
     <div id="before-wrap">
       <img id="before" class="layer" alt="LR" />
     </div>
-    <img id="ov-unc" class="layer overlay" alt="uncertainty" hidden />
+    <img id="ov-unc" class="layer overlay" alt="confidence" hidden />
+    <img id="ov-gate" class="layer overlay" alt="gate" hidden />
     <img id="ov-qa" class="layer overlay" alt="QA mask" hidden />
     <div id="divider"><div id="handle"></div></div>
   </div>
   <div id="tag-left" class="tag">LR · 10 m (nearest ×4)</div>
-  <div id="tag-right" class="tag">SR · 2.5 m · SEN2SR-Lite</div>
+  <div id="tag-right" class="tag">SR · 2.5 m</div>
 </div>
 
 <aside id="panel">
   <h2>run</h2>
   <dl id="stats"></dl>
-  <p class="note">Uncertainty is a test-time-augmentation spread — a proxy.
-  MC-dropout confidence ships with the DRISHTI model.</p>
+  <p class="note" id="note"></p>
 </aside>
 
 <script src="viewer.js"></script>
