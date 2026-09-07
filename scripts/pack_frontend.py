@@ -38,6 +38,11 @@ def main() -> int:
         if p.exists():
             js = js.replace('"' + name + '"', '"' + data_uri(p) + '"')
 
+    # the Artifact wrapper supplies <head>, charset and viewport; drop our own
+    # copies (needed only for the raw-served frontend/index.html).
+    html = re.sub(r'^\s*<meta charset="utf-8" />\s*\n', "", html, count=1, flags=re.M)
+    html = re.sub(r'^\s*<meta name="viewport"[^>]*/>\s*\n', "", html, count=1, flags=re.M)
+
     html = html.replace('<script src="data.js"></script>', f"<script>\n{js}\n</script>")
     # any remaining <img src="assets/..."> in the shell (none expected, but be safe)
     html = re.sub(r'src="(assets/[\w.\-]+)"',

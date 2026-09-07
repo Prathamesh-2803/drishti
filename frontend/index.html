@@ -1,3 +1,5 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>DRISHTI</title>
 <meta name="description" content="An explorer for DRISHTI: Sentinel-2 imagery across India, enhanced from 10 m to 2.5 m with a per-pixel reliability layer." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -34,7 +36,9 @@
   body {
     margin: 0; background: var(--ground); color: var(--ink);
     font: 400 15px/1.6 "IBM Plex Sans", system-ui, sans-serif;
+    overflow-x: hidden;
   }
+  p, .lede, .map-foot, .ws-meta, .ws-note, .claim p, .bgrid p, footer .mono { overflow-wrap: break-word; }
   h1, h2, h3 { font-family: "Chakra Petch", system-ui, sans-serif; font-weight: 600; margin: 0; text-wrap: balance; }
   .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
   button { font-family: inherit; }
@@ -179,9 +183,9 @@
   .accuracy .fine { margin-top: 22px; font-size: 13px; color: var(--ink-dim); max-width: 68ch; }
   .accuracy .fine b { color: var(--ink); }
 
-  .score { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-top: 30px; }
+  .score { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-top: 30px; }
   .score-item { display: flex; flex-direction: column; gap: 8px; padding: 20px 20px 18px; border: 1px solid var(--line); border-top: 2px solid var(--accent); background: var(--surface); }
-  .score-item .sv { font: 700 40px/1 "Chakra Petch", sans-serif; letter-spacing: .01em; font-variant-numeric: tabular-nums; }
+  .score-item .sv { font: 700 40px/1 "Chakra Petch", sans-serif; letter-spacing: .01em; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .score-item .sl { font: 600 12px/1.4 "Chakra Petch", sans-serif; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-dim); }
   .score-item .sl em { font: 400 11px/1.4 "IBM Plex Mono", monospace; letter-spacing: 0; text-transform: none; color: var(--ink-dim); font-style: normal; }
   .score-item .sl b { color: var(--ink); }
@@ -207,9 +211,22 @@
 
   @media (max-width: 900px) {
     .map-intro { grid-template-columns: 1fr; gap: 18px; }
+    .map-intro p { max-width: none; }
     .atlas { grid-template-columns: 1fr; }
     .region-list { max-height: none; }
     .ws-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 560px) {
+    header { flex-wrap: wrap; gap: 4px 12px; padding: 11px 16px; }
+    header .sub { flex-basis: 100%; order: 3; }
+    header .sp { display: none; }
+    .map-wrap, .accuracy .inner, .bhoo .inner, footer .inner { padding-left: 16px; padding-right: 16px; }
+    .ws { padding-left: 14px; padding-right: 14px; }
+    .score { grid-template-columns: 1fr 1fr; }
+    .score-item .sv { font-size: 32px; }
+    .ws-top h2 { font-size: 22px; }
+    .toolbar { gap: 8px; }
+    .toolbar .hint { margin-left: 0; flex-basis: 100%; }
   }
   @media (prefers-reduced-motion: reduce) { .stage.working .scan { animation: none; } * { transition: none !important; } }
 </style>
