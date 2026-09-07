@@ -240,28 +240,45 @@ class Drishti(nn.Module):
         self.up = nn.Sequential(*up)
         self.tail = nn.Conv2d(ch, bands, 3, padding=1)
 
-    def forward(self, lr: torch.Tensor, return_gate: bool = False):
+    def _constrain(self, raw: torch.Tensor, lr: torch.Tensor) -> torch.Tensor:
+        """Exact low-frequency projection: avg_pool2d(nearest_up(x)) == x, so
+        avg_pool2d(sr, scale) == lr to machine precision regardless of what the
+        network produced (CLAUDE.md rule 4)."""
+        if not self.hard_constraint:
+            return raw
+        low_raw = F.avg_pool2d(raw, self.scale)
+        corr = F.interpolate(lr - low_raw, scale_factor=self.scale, mode="nearest")
+        return raw + corr
+
+    def _decode(self, feat: torch.Tensor, f0: torch.Tensor, lr: torch.Tensor) -> torch.Tensor:
+        return self._constrain(self.tail(self.up(self.fuse(feat) + f0)), lr)
+
+    def reset_gate(self) -> None:
+        """Zero the gate so it starts balanced (w == 0.5 everywhere). Used before
+        a fine-tune when the loaded gate has collapsed to one branch."""
+        nn.init.zeros_(self.gate.weight)
+        nn.init.zeros_(self.gate.bias)
+
+    def forward(self, lr: torch.Tensor, return_gate: bool = False, return_branches: bool = False):
         f0 = self.head(lr)
         f_cnn = self.cnn(f0)
         f_swin = self.swin(f0)
         w = torch.sigmoid(self.gate(torch.cat([f_cnn, f_swin], dim=1)))
         f = w * f_cnn + (1.0 - w) * f_swin
         f = self.fuse(self.drop(f)) + f0
-        raw = self.tail(self.up(f))
+        sr = self._constrain(self.tail(self.up(f)), lr)
+        gate_map = w.mean(dim=1, keepdim=True)
 
-        if self.hard_constraint:
-            # Exact low-frequency projection: avg_pool2d(nearest_up(x)) == x, so
-            # avg_pool2d(sr, scale) == lr to machine precision regardless of what
-            # the network produced (CLAUDE.md rule 4).
-            low_raw = F.avg_pool2d(raw, self.scale)
-            corr = F.interpolate(lr - low_raw, scale_factor=self.scale, mode="nearest")
-            sr = raw + corr
-        else:
-            sr = raw
-
+        out = [sr]
         if return_gate:
-            return sr, w.mean(dim=1, keepdim=True)
-        return sr
+            out.append(gate_map)
+        if return_branches:
+            # each branch decoded through the shared head, so an auxiliary loss
+            # can hold both individually competent and stop the gate collapsing
+            out.append({"w": gate_map,
+                        "sr_cnn": self._decode(f_cnn, f0, lr),
+                        "sr_swin": self._decode(f_swin, f0, lr)})
+        return out[0] if len(out) == 1 else tuple(out)
 
     @torch.no_grad()
     def predict_with_uncertainty(self, lr: torch.Tensor, passes: int = 8):

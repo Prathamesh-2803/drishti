@@ -9,7 +9,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-CKPT=${1:-checkpoints/drishti/best.pt}
+CKPT=${1:-checkpoints/drishti-ft/best.pt}
 HELD=vasai
 EVAL=outputs/eval_vasai
 SRDIR=outputs/sr

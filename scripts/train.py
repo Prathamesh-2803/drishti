@@ -83,6 +83,14 @@ def main() -> int:
     p.add_argument("--w-grad", type=float, default=0.0,
                    help="edge-map (Sobel) loss weight; a late low-weight sharpness "
                         "term, e.g. 0.05 for a perceptual fine-tune")
+    p.add_argument("--w-branch", type=float, default=0.0,
+                   help="L1 on each branch's own output — keeps CNN and Swin both "
+                        "competent so the gate has a real choice (e.g. 0.25)")
+    p.add_argument("--w-gate", type=float, default=0.0,
+                   help="pull the gate's global mean toward 0.5 so it cannot "
+                        "collapse onto one branch (e.g. 0.05)")
+    p.add_argument("--reset-gate", action="store_true",
+                   help="zero the gate after --init-from so it starts balanced")
     p.add_argument("--val-every", type=int, default=250)
     p.add_argument("--val-size", type=int, default=512)
     p.add_argument("--device", default="auto")
@@ -140,8 +148,12 @@ def main() -> int:
         ick = torch.load(args.init_from, map_location=device, weights_only=False)
         model.load_state_dict(ick["model"])
         print(f"init weights: {args.init_from} (step {ick.get('step')}) -- fresh schedule")
+        if args.reset_gate:
+            model.reset_gate()
+            print("gate reset to balanced (w = 0.5)")
 
     crit = DrishtiLoss(w_sam=args.w_sam, w_cons=args.w_cons, w_grad=args.w_grad,
+                       w_branch=args.w_branch, w_gate=args.w_gate,
                        scale=args.scale, sigma=args.sigma)
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4, betas=(0.9, 0.99))
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.steps, eta_min=args.lr * 0.05)
@@ -171,12 +183,22 @@ def main() -> int:
     running = {"total": 0.0, "l1": 0.0, "sam_rad": 0.0, "cons": 0.0}
     if args.w_grad:
         running["grad"] = 0.0
+    if args.w_branch:
+        running["branch"] = 0.0
+    if args.w_gate:
+        running["gate_mean"] = 0.0
     n_acc = 0
 
     for step, (lr_b, hr_b) in enumerate(dl, start=start_step + 1):
         lr_b, hr_b = lr_b.to(device), hr_b.to(device)
-        sr = model(lr_b)
-        loss, parts = crit(sr, hr_b, lr_b)
+        if args.w_branch > 0:
+            sr, aux = model(lr_b, return_branches=True)          # decodes both branches
+        elif args.w_gate > 0:
+            sr, gm = model(lr_b, return_gate=True)               # gate map only, cheap
+            aux = {"w": gm}
+        else:
+            sr, aux = model(lr_b), None
+        loss, parts = crit(sr, hr_b, lr_b, aux)
         opt.zero_grad(set_to_none=True)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)

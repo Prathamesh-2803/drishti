@@ -84,12 +84,12 @@ def cmap_inferno(x):
         return (np.stack([x, x * 0.55, x * 0.12], -1).clip(0, 1) * 255).astype(np.uint8)
 
 
-def cmap_gate(g):
-    lo, mid, hi = (np.array([0.29, 0.56, 0.77]), np.array([0.5, 0.53, 0.56]),
-                   np.array([0.91, 0.58, 0.24]))
-    t = g[..., None]
-    out = np.where(t < 0.5, lo + (mid - lo) * (t / 0.5), mid + (hi - mid) * ((t - 0.5) / 0.5))
-    return (np.clip(out, 0, 1) * 255).astype(np.uint8)
+def cmap_viridis(x):
+    try:
+        from matplotlib import cm
+        return (cm.viridis(np.clip(x, 0, 1))[..., :3] * 255).astype(np.uint8)
+    except Exception:
+        return (np.stack([x * 0.27, x * 0.6, x * 0.55 + 0.2 * (1 - x)], -1).clip(0, 1) * 255).astype(np.uint8)
 
 
 def geo(path):
@@ -136,8 +136,8 @@ def main() -> int:
     # scene) get full-resolution imagery so you can zoom to individual 2.5 m
     # pixels; the rest stay at browse resolution to keep the file shareable.
     SIZE = {
-        "deep":  {"sr": (3600, 70), "lr": (1400, 72), "nir": (1600, 68), "conf": (1800, 68), "gate": (1400, 66)},
-        "browse": {"sr": (760, 68), "lr": (500, 68), "nir": (560, 66), "conf": (560, 66), "gate": (500, 64)},
+        "deep":  {"sr": (3600, 70), "lr": (1400, 72), "nir": (1600, 68), "conf": (1800, 68), "div": (1600, 68)},
+        "browse": {"sr": (760, 68), "lr": (500, 68), "nir": (560, 66), "conf": (560, 66), "div": (540, 64)},
     }
     DEEP = {"vasai"}
 
@@ -162,8 +162,10 @@ def main() -> int:
         conf = read(srp.with_name(f"{name}_confidence.tif"))[0]
         cn = conf / max(float(np.percentile(conf, 99)), 1e-6)
         total += save(down(cmap_inferno(cn), z["conf"][0]), f"{name}_conf.jpg", z["conf"][1])
-        g = read(srp.with_name(f"{name}_gate.tif"))[0] / 255.0
-        total += save(down(cmap_gate(g), z["gate"][0]), f"{name}_gate.jpg", z["gate"][1])
+        dvp = srp.with_name(f"{name}_divergence.tif")
+        dv = read(dvp)[0] if dvp.exists() else read(srp.with_name(f"{name}_gate.tif"))[0]
+        dn = dv / max(float(np.percentile(dv, 99)), 1e-6)
+        total += save(down(cmap_viridis(dn), z["div"][0]), f"{name}_div.jpg", z["div"][1])
 
         sidecar = json.loads(Path(str(rawp) + ".json").read_text())
         gg = geo(srp)
@@ -177,7 +179,7 @@ def main() -> int:
             "tile": sidecar["scene_id"].split("_")[5],
             "held": name == "vasai",
             "terrain": ter[0], "note": ter[1],
-            "img": {k: f"assets/{name}_{k}.jpg" for k in ("lr", "sr", "nir", "conf", "gate")},
+            "img": {k: f"assets/{name}_{k}.jpg" for k in ("lr", "sr", "nir", "conf", "div")},
         })
         print(f"  {name:12} {'deep' if deep else 'browse':7} ok")
 

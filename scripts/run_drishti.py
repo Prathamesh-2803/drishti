@@ -111,6 +111,7 @@ def main() -> int:
     st_sr = Stitcher(len(RGBN), sr_h, sr_w, scale, ramp=args.overlap)
     st_cf = Stitcher(1, sr_h, sr_w, scale, ramp=args.overlap)
     st_gt = Stitcher(1, sr_h, sr_w, scale, ramp=args.overlap)
+    st_dv = Stitcher(1, sr_h, sr_w, scale, ramp=args.overlap)
     qa_mask = np.zeros((sr_h, sr_w), dtype=np.uint8)
 
     tiles = iter_tiles(H, W, args.tile, args.overlap)
@@ -122,7 +123,11 @@ def main() -> int:
         patch = lr[:, :, t.y0:t.y0 + t.h, t.x0:t.x0 + t.w].to(dev)
         with torch.no_grad():
             mean, std = model.predict_with_uncertainty(patch, passes=args.passes)
-            _, gate = model(patch, return_gate=True)
+            _, aux = model(patch, return_branches=True)
+        gate = aux["w"]
+        # where the CNN and transformer paths reconstruct the scene differently —
+        # i.e. where having both branches actually changes the answer
+        dv = (aux["sr_cnn"] - aux["sr_swin"]).abs().mean(dim=1, keepdim=True)
         sr_t = mean[0].cpu().numpy()
         cf_t = std[0].cpu().numpy()
 
@@ -145,12 +150,14 @@ def main() -> int:
         # gate lives on the LR grid -> nearest-up to the SR grid for display
         g = np.repeat(np.repeat(gate[0].cpu().numpy(), scale, 1), scale, 2)
         st_gt.add(t, g)
+        st_dv.add(t, dv[0].cpu().numpy())
         if (i + 1) % 20 == 0 or i + 1 == len(tiles):
             print(f"  tile {i+1}/{len(tiles)}", flush=True)
 
     sr = np.clip(st_sr.result(), 0.0, None)          # (bands, H, W)
     conf = np.clip(st_cf.result(), 0.0, None)         # (1, H, W)
     gate_img = np.clip(st_gt.result(), 0.0, 1.0)      # (1, H, W)
+    dvg = np.clip(st_dv.result(), 0.0, None)          # (1, H, W)
 
     dst_transform = Affine(src_transform.a / scale, src_transform.b,
                            src_transform.c + x_off * src_transform.a,
@@ -170,14 +177,18 @@ def main() -> int:
                descriptions=[f"mc_dropout_std (DN = std * {REFL_SCALE}); {args.passes} passes"],
                nodata=0)
     _write_cog(Path(f"{stem}_gate.tif"), np.rint(gate_img * 255).astype(np.uint8), base,
-               descriptions=["mean gate (255 = CNN branch fully trusted, 0 = Swin branch)"])
+               descriptions=["mean gate (255 = CNN branch, 0 = transformer branch)"])
+    dv_dn = np.rint(np.clip(dvg, 0.0, 6.5) * REFL_SCALE).astype(np.uint16)
+    _write_cog(Path(f"{stem}_divergence.tif"), dv_dn, base,
+               descriptions=[f"|CNN branch - transformer branch| (DN = refl * {REFL_SCALE})"],
+               nodata=0)
     _write_cog(Path(f"{stem}_qa_mask.tif"), qa_mask[None], base,
                descriptions=["qa_mask (0 = passed, 1 = flagged: high uncertainty / low consistency)"])
 
     sidecar_path = Path(f"{args.scene}.json")
     sidecar = json.loads(sidecar_path.read_text()) if sidecar_path.exists() else {}
     sidecar["drishti_sr"] = {
-        "model": "DRISHTI (hybrid CNN + Swin, learned gate, exact low-freq constraint)",
+        "model": "DRISHTI (CNN + transformer branches, balanced fusion, exact low-freq constraint)",
         "checkpoint": str(args.ckpt),
         "train_step": ck.get("step"),
         "scale": scale,
@@ -187,6 +198,8 @@ def main() -> int:
         "confidence_mean_reflectance": round(float(conf.mean()), 6),
         "confidence_p95_reflectance": round(float(np.percentile(conf, 95)), 6),
         "gate_mean": round(float(gate_img.mean()), 4),
+        "branch_divergence_mean": round(float(dvg.mean()), 6),
+        "branch_divergence_p95": round(float(np.percentile(dvg, 95)), 6),
         "n_tiles": len(tiles),
         "n_tiles_flagged": n_flag,
         "qa_thresholds": {"cons_rmse": QA_CONS_RMSE, "cons_sam_deg": QA_CONS_SAM,
@@ -205,7 +218,7 @@ def main() -> int:
     print(f"\nblock-average consistency RMSE (SR -> 10 m vs input): {ba_rmse:.2e}")
     print(f"tiles flagged: {n_flag}/{len(tiles)}   confidence mean {conf.mean():.5f}  "
           f"p95 {np.percentile(conf, 95):.5f}")
-    print(f"written: {out_tif} (+ _confidence, _gate, _qa_mask, .json)")
+    print(f"written: {out_tif} (+ _confidence, _gate, _divergence, _qa_mask, .json)")
     return 0
 
 

@@ -73,12 +73,18 @@ def gradient_loss(sr: torch.Tensor, hr: torch.Tensor) -> torch.Tensor:
 
 class DrishtiLoss(torch.nn.Module):
     def __init__(self, w_l1: float = 1.0, w_sam: float = 0.15, w_cons: float = 0.5,
-                 w_grad: float = 0.0, scale: int = 4, sigma: float | None = None) -> None:
+                 w_grad: float = 0.0, w_branch: float = 0.0, w_gate: float = 0.0,
+                 scale: int = 4, sigma: float | None = None) -> None:
         super().__init__()
         self.w_l1, self.w_sam, self.w_cons, self.w_grad = w_l1, w_sam, w_cons, w_grad
+        # w_branch: L1 on each branch's own reconstruction, so both the CNN and
+        # the Swin path stay individually competent and the gate has a real
+        # choice to make. w_gate: pull the gate's global mean toward balanced so
+        # it cannot collapse onto one branch (it stays free to vary per pixel).
+        self.w_branch, self.w_gate = w_branch, w_gate
         self.scale, self.sigma = scale, sigma
 
-    def forward(self, sr: torch.Tensor, hr: torch.Tensor, lr: torch.Tensor):
+    def forward(self, sr: torch.Tensor, hr: torch.Tensor, lr: torch.Tensor, aux: dict | None = None):
         l1 = F.l1_loss(sr, hr)
         sam = sam_loss(sr, hr)
         cons = consistency_loss(sr, lr, self.scale, self.sigma)
@@ -88,6 +94,15 @@ class DrishtiLoss(torch.nn.Module):
             grad = gradient_loss(sr, hr)
             total = total + self.w_grad * grad
             parts["grad"] = grad.item()
+        if aux and self.w_branch:
+            br = F.l1_loss(aux["sr_cnn"], hr) + F.l1_loss(aux["sr_swin"], hr)
+            total = total + self.w_branch * br
+            parts["branch"] = br.item()
+        if aux and self.w_gate:
+            gm = aux["w"].mean()
+            gbal = (gm - 0.5).pow(2)
+            total = total + self.w_gate * gbal
+            parts["gate_mean"] = gm.item()
         parts["total"] = total.item()
         return total, parts
 

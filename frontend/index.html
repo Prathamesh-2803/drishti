@@ -280,7 +280,7 @@
         <button data-layer="rgb" aria-pressed="true" type="button">TRUE COLOUR</button>
         <button data-layer="nir" aria-pressed="false" type="button">VEGETATION</button>
         <button data-layer="conf" aria-pressed="false" type="button" disabled>RELIABILITY</button>
-        <button data-layer="gate" aria-pressed="false" type="button" disabled>GATE</button>
+        <button data-layer="div" aria-pressed="false" type="button" disabled>PATHS</button>
       </div>
       <div class="grp" id="zoomctl">
         <button data-z="out" type="button" aria-label="zoom out">−</button>
@@ -325,7 +325,7 @@
       <div class="claim"><div class="big" data-k="spectral">—</div><div class="lab">colour / index error</div><p>lower spectral error than bicubic — NDVI and water indices stay measurement-grade</p></div>
       <div class="claim"><div class="big" data-k="consist">exact</div><div class="lab">downscale check</div><p>shrink the 2.5 m result back to 10 m and it reproduces the input to 1×10⁻⁵ — detail is added, never substituted</p></div>
       <div class="claim"><div class="big">18%</div><div class="lab">NDVI error cut</div><p>the vegetation index computed on the output is closer to the truth than on the 10 m input upscaled</p></div>
-      <div class="claim"><div class="big">0 / 100</div><div class="lab">tiles rejected</div><p>the per-tile quality gate passed every tile of the held-out scene before stitching</p></div>
+      <div class="claim"><div class="big">0 / 100</div><div class="lab">tiles rejected</div><p>the per-tile quality check passed every tile of the held-out scene before stitching</p></div>
     </div>
 
     <p class="fine">
@@ -334,6 +334,13 @@
       Bright means it was less certain there. Nothing is invented that the
       original 10 m pixels don't support — that is enforced by construction, not
       hoped for.
+    </p>
+    <p class="fine">
+      <b>Two paths, fused.</b> A local-detail CNN branch and a wide-context
+      transformer branch each reconstruct the scene, then combine 50 / 50 for
+      every pixel — the fusion beats either branch alone by ~0.3&nbsp;dB. The
+      <em>paths</em> layer shows where the two disagree: edges, roads and built
+      structure, where the wide-context branch earns its place.
     </p>
   </div>
 </div>
@@ -369,7 +376,7 @@
   <div class="inner">
     <div class="row">
       <div><h3>Imagery</h3><div class="mono">Sentinel-2 L2A surface reflectance<br />Copernicus Data Space Ecosystem<br />13 scenes · Feb–Mar 2026</div></div>
-      <div><h3>Model</h3><div class="mono">Hybrid CNN + transformer, learned gate<br />4-band (B02 B03 B04 B08) · ×4<br />trained under Wald's protocol</div></div>
+      <div><h3>Model</h3><div class="mono">CNN + transformer branches, balanced fusion<br />4-band (B02 B03 B04 B08) · ×4<br />trained under Wald's protocol</div></div>
       <div><h3>Validation</h3><div class="mono">Held-out region · vs bicubic baseline<br id="foot-step" /></div></div>
       <div><h3>Project</h3><div class="mono">SIH 2026 · PS 26142 · NTRO<br />Team THE OUTLIERS</div></div>
     </div>
@@ -458,8 +465,9 @@ window.DRISHTI = window.DRISHTI || {
     b.addEventListener("click", function () { open(i); });
     list.appendChild(b);
   });
-  var ckLabel = (D.interim ? "interim checkpoint" : "trained model") +
-    (D.step ? " · step " + D.step.toLocaleString() : "");
+  var ckLabel = D.interim
+    ? "interim checkpoint · step " + (D.step ? D.step.toLocaleString() : "?")
+    : "trained model";
   document.getElementById("mapfoot").textContent =
     R.length + " regions · Sentinel-2 L2A · Copernicus Data Space · " + ckLabel;
   var fs = document.getElementById("foot-step");
@@ -506,7 +514,7 @@ window.DRISHTI = window.DRISHTI || {
     rgb:  { key: "sr",   hud: "B04·B03·B02 true colour" },
     nir:  { key: "nir",  hud: "B08·B04·B03 vegetation" },
     conf: { key: "conf", hud: "reliability — bright = less certain" },
-    gate: { key: "gate", hud: "gate — blue: transformer · amber: CNN" }
+    div:  { key: "div",  hud: "branch divergence — where the CNN and transformer paths reconstruct differently" }
   };
 
   function stageSize() { return { w: stage.clientWidth, h: stage.clientHeight }; }
@@ -634,7 +642,7 @@ window.DRISHTI = window.DRISHTI || {
     stage.classList.add("pre"); stage.classList.remove("working", "grabbing");
     stage.classList.toggle("zoomable", true);
     document.querySelectorAll('#combo button').forEach(function (b) {
-      b.disabled = (b.dataset.layer === "conf" || b.dataset.layer === "gate");
+      b.disabled = (b.dataset.layer === "conf" || b.dataset.layer === "div");
       b.setAttribute("aria-pressed", String(b.dataset.layer === "rgb"));
     });
     document.getElementById("ws-hint").textContent = "enhance to compare";

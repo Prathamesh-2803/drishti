@@ -138,12 +138,18 @@ def main() -> int:
         summary["confidence_kind"] = ("mc_dropout_std" if "confidence" in conf_path
                                       else "tta_spread")
 
-    # Gate map (DRISHTI only): where the transformer branch was needed.
-    gate_path = f"{stem}_gate.tif"
-    if Path(gate_path).exists():
-        with rasterio.open(gate_path) as g_ds:
-            g = g_ds.read(1).astype(np.float32) / 255.0  # 1 = CNN branch, 0 = Swin
-        # blue where Swin (transformer) dominates, red where CNN dominates
+    # Branch-divergence map (DRISHTI only): where the CNN and transformer paths
+    # reconstruct the scene differently -- i.e. where fusing both changes the answer.
+    div_path = f"{stem}_divergence.tif"
+    if Path(div_path).exists():
+        with rasterio.open(div_path) as g_ds:
+            g = g_ds.read(1).astype(np.float32) / 10000.0
+        gn = np.clip(g / max(np.percentile(g, 99), 1e-6), 0, 1)
+        _save_png((cm.viridis(gn) * 255).astype(np.uint8), assets / "gate.png")
+        summary["branch_divergence_p95"] = float(np.percentile(g, 95))
+    elif Path(f"{stem}_gate.tif").exists():
+        with rasterio.open(f"{stem}_gate.tif") as g_ds:
+            g = g_ds.read(1).astype(np.float32) / 255.0
         _save_png((cm.RdBu(g) * 255).astype(np.uint8), assets / "gate.png")
         summary["gate_mean"] = float(np.mean(g))
 
