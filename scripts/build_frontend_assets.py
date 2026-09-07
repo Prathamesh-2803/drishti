@@ -103,23 +103,26 @@ def geo(path):
 def accuracy_from_report():
     f = EVAL / "vasai_report.json"
     b = EVAL / "vasai_boundary.json"
-    out = {"boundary": "—", "spectral": "—", "sharp": "—", "consist": "exact"}
+    out = {"ssim": "—", "psnr": "—", "psnr_b": "—",
+           "boundary": "—", "boundary_b": "—", "spectral": "—", "consist": "exact"}
     step = 0
     if f.exists():
         r = json.loads(f.read_text())
         step = r.get("train_step", 0)
         d, bic = r["results"]["drishti"], r["results"]["bicubic"]
-        out["sharp"] = f"+{d['psnr_db'] - bic['psnr_db']:.1f} dB"
+        out["ssim"] = f"{d['ssim'] * 100:.1f}%"
+        out["psnr"] = f"{d['psnr_db']:.1f} dB"
+        out["psnr_b"] = f"{bic['psnr_db']:.1f} dB"
         o = r.get("opensr_test") or {}
-        if o.get("drishti", {}).get("reflectance") and o["bicubic"].get("reflectance"):
-            drop = 1 - o["drishti"]["reflectance"] / max(o["bicubic"]["reflectance"], 1e-9)
-            out["spectral"] = f"-{round(drop * 100)}%"
+        dr, br = o.get("drishti", {}).get("reflectance"), o.get("bicubic", {}).get("reflectance")
+        if dr and br:
+            out["spectral"] = f"-{round((1 - dr / br) * 100)}%"
     if b.exists():
         bd = json.loads(b.read_text())
-        f1d = bd["drishti_vs_truth"]["f1"]
-        f1b = bd["bicubic_vs_truth"]["f1"]
+        f1d, f1b = bd["drishti_vs_truth"]["f1"], bd["bicubic_vs_truth"]["f1"]
+        out["boundary_b"] = f"F1 {f1b:.2f}"
         if f1b > 0:
-            out["boundary"] = f"{f1d / f1b:.1f}x"
+            out["boundary"] = f"{f1d / f1b:.1f}×"
     return out, step
 
 
@@ -129,6 +132,15 @@ def main() -> int:
         print(f"no products in {SRDIR}; run scripts/run_drishti.py per scene first", file=sys.stderr)
         return 1
 
+    # px width / quality per layer. "deep" regions (the validated held-out
+    # scene) get full-resolution imagery so you can zoom to individual 2.5 m
+    # pixels; the rest stay at browse resolution to keep the file shareable.
+    SIZE = {
+        "deep":  {"sr": (3600, 70), "lr": (1400, 72), "nir": (1600, 68), "conf": (1800, 68), "gate": (1400, 66)},
+        "browse": {"sr": (760, 68), "lr": (500, 68), "nir": (560, 66), "conf": (560, 66), "gate": (500, 64)},
+    }
+    DEEP = {"vasai"}
+
     regions, total = [], 0
     for name in ORDER:
         srp = SRDIR / f"{name}.tif"
@@ -136,20 +148,22 @@ def main() -> int:
         if not srp.exists():
             print(f"  skip {name}: {srp} missing")
             continue
+        deep = name in DEEP
+        z = SIZE["deep" if deep else "browse"]
         sr = read(srp)
         raw = read(rawp, [1, 2, 3, 7])
         lr_up = np.repeat(np.repeat(raw, 4, 1), 4, 2)[:, : sr.shape[1], : sr.shape[2]]
         lohi = {i: np.percentile(sr[i], (2, 98)) for i in range(4)}
 
-        total += save(down(to_rgb(sr, [2, 1, 0], lohi), 880), f"{name}_sr.jpg", 70)
-        total += save(down(to_rgb(lr_up, [2, 1, 0], lohi), 620), f"{name}_lr.jpg", 70)
-        total += save(down(to_rgb(sr, [3, 2, 1], lohi), 600), f"{name}_nir.jpg", 68)
+        total += save(down(to_rgb(sr, [2, 1, 0], lohi), z["sr"][0]), f"{name}_sr.jpg", z["sr"][1])
+        total += save(down(to_rgb(lr_up, [2, 1, 0], lohi), z["lr"][0]), f"{name}_lr.jpg", z["lr"][1])
+        total += save(down(to_rgb(sr, [3, 2, 1], lohi), z["nir"][0]), f"{name}_nir.jpg", z["nir"][1])
 
         conf = read(srp.with_name(f"{name}_confidence.tif"))[0]
         cn = conf / max(float(np.percentile(conf, 99)), 1e-6)
-        total += save(down(cmap_inferno(cn), 600), f"{name}_conf.jpg", 68)
+        total += save(down(cmap_inferno(cn), z["conf"][0]), f"{name}_conf.jpg", z["conf"][1])
         g = read(srp.with_name(f"{name}_gate.tif"))[0] / 255.0
-        total += save(down(cmap_gate(g), 540), f"{name}_gate.jpg", 66)
+        total += save(down(cmap_gate(g), z["gate"][0]), f"{name}_gate.jpg", z["gate"][1])
 
         sidecar = json.loads(Path(str(rawp) + ".json").read_text())
         gg = geo(srp)
@@ -157,6 +171,7 @@ def main() -> int:
         regions.append({
             "id": name, "name": name.capitalize(),
             "lon": gg["lon"], "lat": gg["lat"], "crs": gg["crs"],
+            "h10": raw.shape[1], "w10": raw.shape[2], "deep": deep,
             "date": sidecar["acquired"][:10],
             "cloud": round(float(sidecar.get("cloud_cover", 0)), 2),
             "tile": sidecar["scene_id"].split("_")[5],
@@ -164,7 +179,7 @@ def main() -> int:
             "terrain": ter[0], "note": ter[1],
             "img": {k: f"assets/{name}_{k}.jpg" for k in ("lr", "sr", "nir", "conf", "gate")},
         })
-        print(f"  {name:12} ok")
+        print(f"  {name:12} {'deep' if deep else 'browse':7} ok")
 
     acc, step = accuracy_from_report()
     # `interim` marks imagery from a checkpoint still being trained. Set the
