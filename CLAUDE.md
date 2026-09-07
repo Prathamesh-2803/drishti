@@ -66,7 +66,9 @@ individually competent — CNN 35.42, transformer 35.28, fused 35.70 dB on the
 held-out crop). Measured on held-out Vasai: +1.14 dB PSNR, SSIM 0.896, SAM 2.59°,
 block-avg consistency 1.2e-5, field-boundary F1 0.31→0.81 vs bicubic. Full report
 in `outputs/eval_vasai/`. All 13 scenes super-resolved to 2.5 m in `outputs/sr/`
-with confidence + branch-divergence rasters. Frontend: `frontend/` (interactive
-explorer, layers: true colour / vegetation / reliability / paths) + `viewer/`
-(swipe debug tool). Remaining: replace SIMULATED imagery in the deck with this
-output; 10-band model is a later round.
+with confidence + branch-divergence rasters (the divergence .tif ships as a
+product but is not an explorer layer — the stitched full-scene version is too
+speckly at deep zoom). Frontend: `frontend/` (interactive explorer, layers:
+true colour / vegetation / reliability) + `viewer/` (swipe debug tool).
+Remaining: replace SIMULATED imagery in the deck with this output; 10-band
+model is a later round.

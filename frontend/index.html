@@ -280,7 +280,6 @@
         <button data-layer="rgb" aria-pressed="true" type="button">TRUE COLOUR</button>
         <button data-layer="nir" aria-pressed="false" type="button">VEGETATION</button>
         <button data-layer="conf" aria-pressed="false" type="button" disabled>RELIABILITY</button>
-        <button data-layer="div" aria-pressed="false" type="button" disabled>PATHS</button>
       </div>
       <div class="grp" id="zoomctl">
         <button data-z="out" type="button" aria-label="zoom out">−</button>
@@ -338,9 +337,9 @@
     <p class="fine">
       <b>Two paths, fused.</b> A local-detail CNN branch and a wide-context
       transformer branch each reconstruct the scene, then combine 50 / 50 for
-      every pixel — the fusion beats either branch alone by ~0.3&nbsp;dB. The
-      <em>paths</em> layer shows where the two disagree: edges, roads and built
-      structure, where the wide-context branch earns its place.
+      every pixel. On the held-out scene the CNN branch alone scores 35.4&nbsp;dB
+      and the transformer branch alone 35.3&nbsp;dB — the fusion reaches
+      35.7&nbsp;dB, so the two paths together genuinely beat either one.
     </p>
   </div>
 </div>
@@ -513,8 +512,7 @@ window.DRISHTI = window.DRISHTI || {
   var LAYERS = {
     rgb:  { key: "sr",   hud: "B04·B03·B02 true colour" },
     nir:  { key: "nir",  hud: "B08·B04·B03 vegetation" },
-    conf: { key: "conf", hud: "reliability — bright = less certain" },
-    div:  { key: "div",  hud: "branch divergence — where the CNN and transformer paths reconstruct differently" }
+    conf: { key: "conf", hud: "reliability — bright = less certain" }
   };
 
   function stageSize() { return { w: stage.clientWidth, h: stage.clientHeight }; }
@@ -642,7 +640,7 @@ window.DRISHTI = window.DRISHTI || {
     stage.classList.add("pre"); stage.classList.remove("working", "grabbing");
     stage.classList.toggle("zoomable", true);
     document.querySelectorAll('#combo button').forEach(function (b) {
-      b.disabled = (b.dataset.layer === "conf" || b.dataset.layer === "div");
+      b.disabled = (b.dataset.layer === "conf");
       b.setAttribute("aria-pressed", String(b.dataset.layer === "rgb"));
     });
     document.getElementById("ws-hint").textContent = "enhance to compare";

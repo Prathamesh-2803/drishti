@@ -136,8 +136,8 @@ def main() -> int:
     # scene) get full-resolution imagery so you can zoom to individual 2.5 m
     # pixels; the rest stay at browse resolution to keep the file shareable.
     SIZE = {
-        "deep":  {"sr": (3600, 70), "lr": (1400, 72), "nir": (1600, 68), "conf": (1800, 68), "div": (1600, 68)},
-        "browse": {"sr": (760, 68), "lr": (500, 68), "nir": (560, 66), "conf": (560, 66), "div": (540, 64)},
+        "deep":  {"sr": (3600, 70), "lr": (1400, 72), "nir": (1600, 68), "conf": (1800, 68)},
+        "browse": {"sr": (760, 68), "lr": (500, 68), "nir": (560, 66), "conf": (560, 66)},
     }
     DEEP = {"vasai"}
 
@@ -162,10 +162,6 @@ def main() -> int:
         conf = read(srp.with_name(f"{name}_confidence.tif"))[0]
         cn = conf / max(float(np.percentile(conf, 99)), 1e-6)
         total += save(down(cmap_inferno(cn), z["conf"][0]), f"{name}_conf.jpg", z["conf"][1])
-        dvp = srp.with_name(f"{name}_divergence.tif")
-        dv = read(dvp)[0] if dvp.exists() else read(srp.with_name(f"{name}_gate.tif"))[0]
-        dn = dv / max(float(np.percentile(dv, 99)), 1e-6)
-        total += save(down(cmap_viridis(dn), z["div"][0]), f"{name}_div.jpg", z["div"][1])
 
         sidecar = json.loads(Path(str(rawp) + ".json").read_text())
         gg = geo(srp)
@@ -179,7 +175,7 @@ def main() -> int:
             "tile": sidecar["scene_id"].split("_")[5],
             "held": name == "vasai",
             "terrain": ter[0], "note": ter[1],
-            "img": {k: f"assets/{name}_{k}.jpg" for k in ("lr", "sr", "nir", "conf", "div")},
+            "img": {k: f"assets/{name}_{k}.jpg" for k in ("lr", "sr", "nir", "conf")},
         })
         print(f"  {name:12} {'deep' if deep else 'browse':7} ok")
 

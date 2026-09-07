@@ -30,8 +30,7 @@ window.DRISHTI = {
     "lr": "assets/vasai_lr.jpg",
     "sr": "assets/vasai_sr.jpg",
     "nir": "assets/vasai_nir.jpg",
-    "conf": "assets/vasai_conf.jpg",
-    "div": "assets/vasai_div.jpg"
+    "conf": "assets/vasai_conf.jpg"
    }
   },
   {
@@ -53,8 +52,7 @@ window.DRISHTI = {
     "lr": "assets/mumbai_lr.jpg",
     "sr": "assets/mumbai_sr.jpg",
     "nir": "assets/mumbai_nir.jpg",
-    "conf": "assets/mumbai_conf.jpg",
-    "div": "assets/mumbai_div.jpg"
+    "conf": "assets/mumbai_conf.jpg"
    }
   },
   {
@@ -76,8 +74,7 @@ window.DRISHTI = {
     "lr": "assets/pune_lr.jpg",
     "sr": "assets/pune_sr.jpg",
     "nir": "assets/pune_nir.jpg",
-    "conf": "assets/pune_conf.jpg",
-    "div": "assets/pune_div.jpg"
+    "conf": "assets/pune_conf.jpg"
    }
   },
   {
@@ -99,8 +96,7 @@ window.DRISHTI = {
     "lr": "assets/surat_lr.jpg",
     "sr": "assets/surat_sr.jpg",
     "nir": "assets/surat_nir.jpg",
-    "conf": "assets/surat_conf.jpg",
-    "div": "assets/surat_div.jpg"
+    "conf": "assets/surat_conf.jpg"
    }
   },
   {
@@ -122,8 +118,7 @@ window.DRISHTI = {
     "lr": "assets/nashik_lr.jpg",
     "sr": "assets/nashik_sr.jpg",
     "nir": "assets/nashik_nir.jpg",
-    "conf": "assets/nashik_conf.jpg",
-    "div": "assets/nashik_div.jpg"
+    "conf": "assets/nashik_conf.jpg"
    }
   },
   {
@@ -145,8 +140,7 @@ window.DRISHTI = {
     "lr": "assets/ludhiana_lr.jpg",
     "sr": "assets/ludhiana_sr.jpg",
     "nir": "assets/ludhiana_nir.jpg",
-    "conf": "assets/ludhiana_conf.jpg",
-    "div": "assets/ludhiana_div.jpg"
+    "conf": "assets/ludhiana_conf.jpg"
    }
   },
   {
@@ -168,8 +162,7 @@ window.DRISHTI = {
     "lr": "assets/nagpur_lr.jpg",
     "sr": "assets/nagpur_sr.jpg",
     "nir": "assets/nagpur_nir.jpg",
-    "conf": "assets/nagpur_conf.jpg",
-    "div": "assets/nagpur_div.jpg"
+    "conf": "assets/nagpur_conf.jpg"
    }
   },
   {
@@ -191,8 +184,7 @@ window.DRISHTI = {
     "lr": "assets/coimbatore_lr.jpg",
     "sr": "assets/coimbatore_sr.jpg",
     "nir": "assets/coimbatore_nir.jpg",
-    "conf": "assets/coimbatore_conf.jpg",
-    "div": "assets/coimbatore_div.jpg"
+    "conf": "assets/coimbatore_conf.jpg"
    }
   },
   {
@@ -214,8 +206,7 @@ window.DRISHTI = {
     "lr": "assets/ahmedabad_lr.jpg",
     "sr": "assets/ahmedabad_sr.jpg",
     "nir": "assets/ahmedabad_nir.jpg",
-    "conf": "assets/ahmedabad_conf.jpg",
-    "div": "assets/ahmedabad_div.jpg"
+    "conf": "assets/ahmedabad_conf.jpg"
    }
   },
   {
@@ -237,8 +228,7 @@ window.DRISHTI = {
     "lr": "assets/hyderabad_lr.jpg",
     "sr": "assets/hyderabad_sr.jpg",
     "nir": "assets/hyderabad_nir.jpg",
-    "conf": "assets/hyderabad_conf.jpg",
-    "div": "assets/hyderabad_div.jpg"
+    "conf": "assets/hyderabad_conf.jpg"
    }
   },
   {
@@ -260,8 +250,7 @@ window.DRISHTI = {
     "lr": "assets/jaipur_lr.jpg",
     "sr": "assets/jaipur_sr.jpg",
     "nir": "assets/jaipur_nir.jpg",
-    "conf": "assets/jaipur_conf.jpg",
-    "div": "assets/jaipur_div.jpg"
+    "conf": "assets/jaipur_conf.jpg"
    }
   },
   {
@@ -283,8 +272,7 @@ window.DRISHTI = {
     "lr": "assets/bhimavaram_lr.jpg",
     "sr": "assets/bhimavaram_sr.jpg",
     "nir": "assets/bhimavaram_nir.jpg",
-    "conf": "assets/bhimavaram_conf.jpg",
-    "div": "assets/bhimavaram_div.jpg"
+    "conf": "assets/bhimavaram_conf.jpg"
    }
   },
   {
@@ -306,8 +294,7 @@ window.DRISHTI = {
     "lr": "assets/indore_lr.jpg",
     "sr": "assets/indore_sr.jpg",
     "nir": "assets/indore_nir.jpg",
-    "conf": "assets/indore_conf.jpg",
-    "div": "assets/indore_div.jpg"
+    "conf": "assets/indore_conf.jpg"
    }
   }
  ]
