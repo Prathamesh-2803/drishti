@@ -337,20 +337,6 @@
       <div class="score-item"><span class="sv" data-s="boundary">—</span><span class="sl">field boundaries<br /><em>recovered vs. bicubic's <b data-s="boundary_b">—</b></em></span></div>
     </div>
 
-    <div class="claims" id="claims">
-      <div class="claim"><div class="big" data-k="spectral">—</div><div class="lab">colour / index error</div><p>lower spectral error than bicubic — NDVI and water indices stay measurement-grade</p></div>
-      <div class="claim"><div class="big" data-k="consist">exact</div><div class="lab">downscale check</div><p>shrink the 2.5 m result back to 10 m and it reproduces the input to 1×10⁻⁵ — detail is added, never substituted</p></div>
-      <div class="claim"><div class="big">18%</div><div class="lab">NDVI error cut</div><p>the vegetation index computed on the output is closer to the truth than on the 10 m input upscaled</p></div>
-      <div class="claim"><div class="big">0 / 100</div><div class="lab">tiles rejected</div><p>the per-tile quality check passed every tile of the held-out scene before stitching</p></div>
-    </div>
-
-    <p class="fine">
-      <b>The reliability layer</b> ships with every enhanced image: a per-pixel
-      confidence map from the model's own agreement across repeated passes.
-      Bright means it was less certain there. Nothing is invented that the
-      original 10 m pixels don't support — that is enforced by construction, not
-      hoped for.
-    </p>
     <p class="fine">
       <b>Two paths, fused.</b> A local-detail CNN branch and a wide-context
       transformer branch each reconstruct the scene, then combine 50 / 50 for
@@ -493,14 +479,11 @@ window.DRISHTI = window.DRISHTI || {
     if (hn) hn.textContent = "Every figure on this page is measured, on a region the model never trained on. No illustrative numbers; goals, where stated elsewhere, are labelled TARGET.";
   }
 
-  /* accuracy score + claims */
+  /* accuracy score */
   var A = D.accuracy || {};
   var smap = { ssim: A.ssim, psnr: A.psnr, psnr_b: A.psnr_b, boundary: A.boundary, boundary_b: A.boundary_b };
   document.querySelectorAll("[data-s]").forEach(function (el) {
     var v = smap[el.dataset.s]; if (v) el.textContent = v;
-  });
-  document.querySelectorAll("#claims .big[data-k]").forEach(function (el) {
-    var k = el.dataset.k; if (A[k]) el.textContent = A[k];
   });
 
   /* --- view switching --- */
